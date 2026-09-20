@@ -1,0 +1,58 @@
+================================================================================
+ZEPTO API SCRAPING FLOW - EXACT REQUEST MAPPING
+================================================================================
+
+STEP 1: Autocomplete (Pincode -> Place ID)
+--------------------------------------------------------------------------------
+* Endpoint: GET https://bff-gateway.zepto.com/api/v1/maps/place/autocomplete/?place_name={PINCODE}[cite: 2]
+* Response Extraction: 
+  place_id = response.json()["predictions"][0]["place_id"][cite: 2]
+
+STEP 2: Place Details (Place ID -> Coordinates)
+--------------------------------------------------------------------------------
+* Endpoint: GET https://bff-gateway.zepto.com/api/v1/maps/place/details/?place_id={PLACE_ID}[cite: 2]
+* Response Extraction:
+  lat = response.json()["result"]["geometry"]["location"]["lat"][cite: 2]
+  lng = response.json()["result"]["geometry"]["location"]["lng"][cite: 2]
+
+STEP 3: Serviceability & Store Mapping (Coordinates -> Store ID)
+--------------------------------------------------------------------------------
+* Endpoint: GET https://bff-gateway.zepto.com/api/v1/user/customer/address/location?latitude={LAT}&longitude={LNG}[cite: 2]
+* Response Extraction: 
+  store_id = response.json()["storeDetailedInfo"]["storeId"]  (Parsed from exact UI serviceability payload)
+
+STEP 4: Product Search (Store ID -> Inventory Data)
+--------------------------------------------------------------------------------
+* Endpoint: POST https://bff-gateway.zepto.com/user-search-service/api/v3/search[cite: 3]
+* Exact Payload (JSON):
+  {
+      "intentId": "15ee84ca-caf4-4cd7-8be7-fd09639a5946",
+      "mode": "AUTOSUGGEST",
+      "pageNumber": 0,
+      "query": "red bull",
+      "userSessionId": "{SESSION_ID}"
+  }[cite: 3]
+
+* Exact Required Headers:
+  Zepto API routes searches to stores via HEADERS, not the body payload.
+  - "store_id": "{STORE_ID_FROM_STEP_3}"[cite: 2]
+  - "tenant": "ZEPTO"[cite: 2]
+  - "device_id": "{DEVICE_ID}"[cite: 2]
+  - "session_id": "{SESSION_ID}"[cite: 2]
+  - "request-signature": "{DYNAMICALLY_GENERATED_HASH}"[cite: 2]
+  - "app_version": "16.31.2"[cite: 2]
+
+* Data Parsing Logic:
+  1. Loop through `response.json()["layout"]`[cite: 3].
+  2. Check `widget["data"]["resolver"]["type"]`[cite: 3].
+     - If "product_grid", set Is_Sponsored = False[cite: 3].
+     - If "ads_post_search", set Is_Sponsored = True[cite: 3].
+  3. Loop through `widget["data"]["resolver"]["data"]["items"]`[cite: 3].
+  4. For each item where `item["type"] == "PRODUCT_ITEM"`[cite: 3], extract:
+     - brand = item["data"]["product"]["brand"][cite: 3]
+     - name = item["data"]["product"]["name"][cite: 3]
+     - product_id = item["data"]["product"]["id"][cite: 3]
+     - variant_id = item["data"]["productVariant"]["id"][cite: 3]
+     - pack_size = item["data"]["productVariant"]["formattedPacksize"][cite: 3]
+     - available_qty = item["data"]["availableQuantity"][cite: 3]
+     - price = item["data"]["sellingPrice"][cite: 3]

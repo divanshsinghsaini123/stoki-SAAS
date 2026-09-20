@@ -5,7 +5,6 @@ import sys
 import redis
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-QUEUE_NAME = "instamart_tasks"
 
 # Sample tickets matching your workflow
 TEST_TICKETS = [
@@ -13,12 +12,12 @@ TEST_TICKETS = [
         "brand_id": "brand_redbull_001",
         "brand": "Red Bull",
         "query": "Red Bull",
-        "pincode": "400009"
+        "pincode": "400009",
     }
 ]
 
 
-def seed_queue():
+def seed_queue(queue_name: str = "blinkit_tasks"):
     try:
         r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
         r.ping()
@@ -27,16 +26,19 @@ def seed_queue():
         print(f"[-] Redis connection failed: {exc}")
         sys.exit(1)
 
-    print(f"[*] Pushing {len(TEST_TICKETS)} tickets to '{QUEUE_NAME}'...")
+    print(f"[*] Pushing {len(TEST_TICKETS)} tickets to '{queue_name}'...")
 
     for ticket in TEST_TICKETS:
         payload = json.dumps(ticket)
-        r.rpush(QUEUE_NAME, payload)
-        print(f"  [->] Pushed ticket: brand_id={ticket['brand_id']} | pincode={ticket['pincode']} | query='{ticket['query']}'")
+        r.rpush(queue_name, payload)
+        print(
+            f"  [->] Pushed ticket: brand_id={ticket['brand_id']} | pincode={ticket['pincode']} | query='{ticket['query']}'"
+        )
 
-    current_len = r.llen(QUEUE_NAME)
-    print(f"[OK] Seeding complete. Current queue length: {current_len}")
+    current_len = r.llen(queue_name)
+    print(f"[OK] Seeding complete. Current '{queue_name}' queue length: {current_len}")
 
 
 if __name__ == "__main__":
-    seed_queue()
+    target_queue = sys.argv[1] if len(sys.argv) > 1 else "blinkit_tasks"
+    seed_queue(target_queue)

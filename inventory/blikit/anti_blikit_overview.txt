@@ -1,0 +1,314 @@
+================================================================================
+BLINKIT END-TO-END SCRAPING SPECIFICATION & DATA MAPPING GUIDE
+================================================================================
+
+This document details the complete technical architecture and request sequence
+required to scrape real-time dark-store inventory, pricing, SKU hierarchies,
+and variant-level metadata from Blinkit across target pincodes.
+
+================================================================================
+SECTION 1: GLOBAL HEADERS & SESSION CONTEXT
+================================================================================
+
+All requests must supply consistent client telemetry headers to bypass WAF/Bot
+mitigation. Unlike Zepto, Blinkit does not require dynamic cryptographic HMAC 
+signatures (such as `request-signature`), but strictly validates client identity 
+and coordinate headers.
+
+Mandatory Headers:
+- "app_client": "consumer_web"
+- "app_version": "52434332"
+- "web_app_version": "1008010016"
+- "rn_bundle_version": "1009003012"
+- "auth_key": "c761ec3633c22afad934fb17a66385c1c06c5472b4898b866b7306186d0bb477"
+- "device_id": "{16_HEX_CHARS}" (e.g., "c5de7e957637024d")
+- "session_uuid": "{UUID4}" (e.g., "c2144bb7-a0af-4249-b0d1-d7efb0b2d3e4")
+- "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+- "Content-Type": "application/json"
+- "Accept": "*/*"
+
+================================================================================
+SECTION 2: STEP-BY-STEP API FLOW
+================================================================================
+
+--------------------------------------------------------------------------------
+STEP 1: Address Autocomplete & Geocoding Token
+--------------------------------------------------------------------------------
+Resolves the raw target pincode into a valid Google Place ID and session token.
+
+* Method: GET
+* URL: https://blinkit.com/location/autoSuggest
+* Query Parameters:
+  - query: "{PINCODE}" (e.g., "400001")
+  - lat: "28.413333" (Fallback coordinates acceptable)
+  - lng: "77.072833"
+  - session_token: "" (Empty string on initial call)
+
+* Extraction Logic:
+  predictions = response.json()["ui_data"]["suggestions"]
+  target_item = predictions[0]
+  place_id = target_item["meta"]["place_id"]
+  session_token = target_item["meta"]["session_token"]
+  title = target_item["title"]["text"]
+  description = target_item["subtitle"]["text"]
+
+--------------------------------------------------------------------------------
+STEP 2: Coordinate Resolution & Location Verification
+--------------------------------------------------------------------------------
+Binds the session token to the selected place ID and extracts high-precision 
+geographic coordinates.
+
+* Method: GET
+* URL: https://blinkit.com/location/info
+* Query Parameters:
+  - place_id: "{PLACE_ID_FROM_STEP_1}"
+  - title: "{TITLE_FROM_STEP_1}"
+  - description: "{DESCRIPTION_FROM_STEP_1}"
+  - is_pin_moved: "false"
+  - session_token: "{SESSION_TOKEN_FROM_STEP_1}"
+
+* Extraction Logic:
+  data = response.json()
+  is_serviceable = data.get("is_serviceable", False)
+  latitude = str(data["coordinate"]["lat"]) (e.g., "18.9385352")
+  longitude = str(data["coordinate"]["lon"]) (e.g., "72.836334")
+
+  * Validation Check: If `is_serviceable == False`, terminate execution for this 
+    pincode immediately (dark-store unserviceable).
+
+--------------------------------------------------------------------------------
+STEP 3: Dark-Store / Merchant Allocation
+--------------------------------------------------------------------------------
+Identifies the active fulfillment center servicing the verified coordinates.
+
+* Method: GET
+* URL: https://blinkit.com/v2/services/secondary-data/
+* Query Parameters:
+  - filter: "new_offer,show_product_group_sharing,is_new_user,cart_ab_test_variant,city_id,sku_auto_add,cart_banner_image,show_referral_login,product_sku_limit"
+  - offers_last_visit_ts: "0"
+* Required Context Headers:
+  - "lat": "{LATITUDE_FROM_STEP_2}"
+  - "lon": "{LONGITUDE_FROM_STEP_2}"
+
+* Extraction Logic:
+  props = response.json()["analytics_properties"]
+  merchant_id = props["merchant_id"] (e.g., 49585)
+  city_id = props["city_id"]
+  city_name = props["city_name"]
+
+--------------------------------------------------------------------------------
+STEP 4: Product Search, Stock Intelligence, & Pagination Handling
+--------------------------------------------------------------------------------
+Executes the product search against the allocated dark store and traverses 
+the pagination batches.
+
+* Method: POST
+* URL: https://blinkit.com/v1/layout/search
+* Query Parameters:
+  - offset: {OFFSET_INTEGER} (Starts at 0, increments by 12)
+  - limit: 12 (Blinkit server enforces a maximum batch size of 12 items)
+  - actual_query: "{SEARCH_KEYWORD}" (e.g., "red bull")
+  - q: "{SEARCH_KEYWORD}"
+  - search_method: "basic"
+  - search_type: "type_to_search"
+* Required Context Headers:
+  - "lat": "{LATITUDE_FROM_STEP_2}"
+  - "lon": "{LONGITUDE_FROM_STEP_2}"
+* Body: `{}` (Empty JSON object)
+
+================================================================================
+SECTION 3: UNIQUE DATA STRUCTURE & ATTRIBUTE EXTRACTION
+================================================================================
+
+Blinkit returns UI snippets in its response payload (`response.snippets`).
+Products are contained in snippets where `widget_type == "product_card_snippet_type_2"`.
+
+JSON Parsing Paths:
+- Product ID / SKU: `snippet["data"]["product_id"]` (e.g., "767658")
+- Group / Parent ID: `snippet["data"]["group_id"]` (Links variants of the same product)
+- Product Name: `snippet["data"]["name"]["text"]`
+- Full Display Title: `snippet["data"]["display_name"]["text"]`
+- Brand Name: `snippet["data"]["brand_name"]["text"]`
+- Pack Size / Variant: `snippet["data"]["variant"]["text"]` (e.g., "250 ml", "4 x 250 ml")
+- Inventory Level: `snippet["data"]["inventory"]` (Direct stock count, e.g., 14)
+- Selling Price: `snippet["data"]["normal_price"]["text"]` (e.g., "₹125")
+- MRP: `snippet["data"]["mrp"]["text"]` (Present only if discounted, e.g., "₹150")
+- Discount Percentage: `snippet["data"]["offer_tag"]["title"]["text"]` (e.g., "20%\nOFF")
+- Rating Average: `snippet["data"]["rating"]["bar"]["value"]` (e.g., 4.59)
+- Total Rating Count: `snippet["data"]["rating"]["bar"]["title"]["text"]` (e.g., "1.1 lac", "458")
+- Primary Image: `snippet["data"]["image"]["url"]`
+- Media Gallery: `[img["image"]["url"] for img in snippet["data"]["media_container"]["items"]]`
+- ETA Display: `snippet["data"]["eta_tag"]["title"]["text"]` (e.g., "earliest")
+- Stock Out Flag: `snippet["data"]["is_sold_out"]` (Boolean)
+- Deep Link: `snippet["data"]["click_action"]["blinkit_deeplink"]["url"]`
+- Product Type / Category: `snippet["tracking"]["common_attributes"]["ptype"]` (e.g., "Energy Drink")
+- Ad / Sponsored Flag: `snippet["tracking"]["common_attributes"]["badge"] == "AD"`
+- Algorithmic Match Reason: `snippet["tracking"]["common_attributes"]["reason"]`
+  (e.g., "brand|match|red bull,sales data,text_match,within_category")
+
+================================================================================
+SECTION 4: COMPARISON: BLINKIT VS. ZEPTO VS. INSTAMART
+================================================================================
+
+1. Authentication & Signing:
+   - Blinkit: Static token authentication (`auth_key` + `app_client`). No request signing.
+   - Zepto: Complex HMAC signature required (`request-signature`) generated from payload + timestamp.
+   - Instamart: Akamai Bot Manager protected. Requires `curl_cffi` TLS/JA3 impersonation.
+
+2. Inventory Visibility:
+   - Blinkit: Provides exact numeric unit inventory (`snippet["data"]["inventory"]`).
+   - Zepto: Provides exact numeric available inventory (`availableQuantity`).
+   - Instamart: Masks raw inventory counts; supplies boolean availability and max purchase limits.
+
+3. Pagination Architecture:
+   - Blinkit: Fixed 12-item chunks via URL query parameters (`offset` & `limit`). Does not support custom limits.
+   - Zepto: Single-page layout resolution with lazy widget batches.
+   - Instamart: Supports cursor-based pagination offsets.
+
+4. Feed Poisoning & Similarity Padding:
+   - Blinkit automatically inserts related category items (e.g., Monster, Sting, Water) 
+     or repeats existing items once exact brand matches are exhausted.
+   - Defensive Filtering Required:
+     1. Brand Substring Match: `target_brand.lower() in item_brand.lower()`
+     2. Deduplication Set: Track `product_id` across batches to prevent loop stalls.
+
+================================================================================
+SECTION 5: COMPLETE PYTHON SCRAPER LOGIC
+================================================================================
+
+```python
+import time
+import random
+import requests
+
+def scrape_blinkit_pincode(pincode: str, target_brand: str = "red bull"):
+    session = requests.Session()
+    
+    headers = {
+        "app_client": "consumer_web",
+        "app_version": "52434332",
+        "auth_key": "c761ec3633c22afad934fb17a66385c1c06c5472b4898b866b7306186d0bb477",
+        "device_id": "c5de7e957637024d",
+        "session_uuid": "c2144bb7-a0af-4249-b0d1-d7efb0b2d3e4",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Content-Type": "application/json",
+        "Accept": "*/*"
+    }
+
+    # STEP 1: Autocomplete
+    autosuggest_url = "[https://blinkit.com/location/autoSuggest](https://blinkit.com/location/autoSuggest)"
+    params_step1 = {
+        "query": pincode,
+        "lat": "28.413333",
+        "lng": "77.072833",
+        "session_token": ""
+    }
+    res1 = session.get(autosuggest_url, params=params_step1, headers=headers).json()
+    suggestions = res1.get("ui_data", {}).get("suggestions", [])
+    if not suggestions:
+        return {"status": "FAILED", "reason": "Invalid Pincode"}
+
+    first_suggestion = suggestions[0]
+    place_id = first_suggestion["meta"]["place_id"]
+    session_token = first_suggestion["meta"]["session_token"]
+    title = first_suggestion["title"]["text"]
+    description = first_suggestion["subtitle"]["text"]
+
+    time.sleep(random.uniform(1.0, 2.0))
+
+    # STEP 2: Location Details
+    info_url = "[https://blinkit.com/location/info](https://blinkit.com/location/info)"
+    params_step2 = {
+        "place_id": place_id,
+        "title": title,
+        "description": description,
+        "is_pin_moved": "false",
+        "session_token": session_token
+    }
+    res2 = session.get(info_url, params=params_step2, headers=headers).json()
+    if not res2.get("is_serviceable", False):
+        return {"status": "UNSERVICEABLE", "pincode": pincode}
+
+    lat = str(res2["coordinate"]["lat"])
+    lon = str(res2["coordinate"]["lon"])
+
+    # Update headers with verified coordinates
+    headers["lat"] = lat
+    headers["lon"] = lon
+
+    time.sleep(random.uniform(1.0, 2.0))
+
+    # STEP 3: Merchant Resolution
+    secondary_url = "[https://blinkit.com/v2/services/secondary-data/](https://blinkit.com/v2/services/secondary-data/)"
+    params_step3 = {
+        "filter": "new_offer,show_product_group_sharing,is_new_user,cart_ab_test_variant,city_id,sku_auto_add,cart_banner_image,show_referral_login,product_sku_limit",
+        "offers_last_visit_ts": "0"
+    }
+    res3 = session.get(secondary_url, params=params_step3, headers=headers).json()
+    merchant_id = res3.get("analytics_properties", {}).get("merchant_id")
+
+    # STEP 4: Product Search with Infinite Scroll Protection
+    offset = 0
+    limit = 12
+    seen_product_ids = set()
+    extracted_inventory = []
+
+    while True:
+        search_url = "[https://blinkit.com/v1/layout/search](https://blinkit.com/v1/layout/search)"
+        params_step4 = {
+            "offset": offset,
+            "limit": limit,
+            "actual_query": target_brand,
+            "q": target_brand,
+            "search_method": "basic",
+            "search_type": "type_to_search"
+        }
+        
+        res4 = session.post(search_url, params=params_step4, headers=headers, json={}).json()
+        snippets = res4.get("response", {}).get("snippets", [])
+        
+        found_new_product = False
+        for s in snippets:
+            if s.get("widget_type") == "product_card_snippet_type_2":
+                p_data = s.get("data", {})
+                brand_name = p_data.get("brand_name", {}).get("text", "")
+                p_id = p_data.get("product_id")
+
+                # Strict Brand Match & Deduplication
+                if target_brand.lower() in brand_name.lower():
+                    if p_id and p_id not in seen_product_ids:
+                        seen_product_ids.add(p_id)
+                        found_new_product = True
+                        
+                        extracted_inventory.append({
+                            "product_id": p_id,
+                            "group_id": p_data.get("group_id"),
+                            "brand": brand_name,
+                            "name": p_data.get("name", {}).get("text"),
+                            "variant": p_data.get("variant", {}).get("text"),
+                            "inventory": p_data.get("inventory", 0),
+                            "selling_price": p_data.get("normal_price", {}).get("text"),
+                            "mrp": p_data.get("mrp", {}).get("text"),
+                            "discount": p_data.get("offer_tag", {}).get("title", {}).get("text", "").replace("\n", " "),
+                            "is_sold_out": p_data.get("is_sold_out", False),
+                            "is_sponsored": s.get("tracking", {}).get("common_attributes", {}).get("badge") == "AD",
+                            "rating": p_data.get("rating", {}).get("bar", {}).get("value"),
+                            "rating_count": p_data.get("rating", {}).get("bar", {}).get("title", {}).get("text"),
+                            "image_url": p_data.get("image", {}).get("url")
+                        })
+        
+        # Stop condition: When a batch has zero new target products (loop or filler reached)
+        if not found_new_product:
+            break
+            
+        offset += limit
+        time.sleep(random.uniform(1.5, 3.0))
+
+    return {
+        "status": "SUCCESS",
+        "pincode": pincode,
+        "merchant_id": merchant_id,
+        "coordinates": {"lat": lat, "lon": lon},
+        "total_unique_skus": len(extracted_inventory),
+        "products": extracted_inventory
+    }
