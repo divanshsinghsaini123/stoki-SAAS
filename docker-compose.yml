@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stoki-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stoki}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stoki_password}
+      POSTGRES_DB: ${POSTGRES_DB:-stoki_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: stoki-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: stoki-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
+    container_name: stoki-inventory-service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: stoki-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - api-gateway
+
+  blinkit-worker:
+    build:
+      context: .
+      dockerfile: services/scrapers/blinkit-worker/Dockerfile
+    container_name: stoki-blinkit-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  bigbasket-worker:
+    build:
+      context: .
+      dockerfile: services/scrapers/bigbasket-worker/Dockerfile
+    container_name: stoki-bigbasket-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  zepto-worker:
+    build:
+      context: .
+      dockerfile: services/scrapers/zepto-worker/Dockerfile
+    container_name: stoki-zepto-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  instamart-worker:
+    build:
+      context: .
+      dockerfile: services/scrapers/instamart-worker/Dockerfile
+    container_name: stoki-instamart-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
