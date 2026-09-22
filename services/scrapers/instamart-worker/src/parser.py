@@ -40,7 +40,7 @@ def parse_instamart_response(
     if not raw_response or "data" not in raw_response:
         return []
 
-    logger.info(f"Instamart response: {raw_response}")
+    # logger.debug(f"Instamart response: {raw_response}")
     cards = raw_response.get("data", {}).get("cards", [])
     extracted_records: list[dict[str, Any]] = []
     seen_skus: set[str] = set()
