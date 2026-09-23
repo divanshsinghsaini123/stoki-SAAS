@@ -1,5 +1,16 @@
+import logging
+import os
 import re
 from typing import Any
+
+logger = logging.getLogger("instamart-parser")
+
+INSTAMART_IMAGE_BASE_URL = os.getenv(
+    "INSTAMART_IMAGE_BASE_URL",
+    "https://instamart-media-assets.swiggy.com/swiggy/image/upload/",
+)
+if not INSTAMART_IMAGE_BASE_URL.endswith("/"):
+    INSTAMART_IMAGE_BASE_URL += "/"
 
 WIDGET_GRID = "type.googleapis.com/swiggy.gandalf.widgets.v2.GridWidget"
 WIDGET_OOS = "type.googleapis.com/swiggy.im.v1.OOSItemCollectionCard"
@@ -7,6 +18,11 @@ WIDGET_OOS = "type.googleapis.com/swiggy.im.v1.OOSItemCollectionCard"
 
 def normalize_text(value: str | None) -> str:
     return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
+def clean_alphanumeric(value: str | None) -> str:
+    """Strips all spaces and punctuation: 'Coca-Cola' -> 'cocacola'."""
+    return re.sub(r"[^a-z0-9]", "", (value or "").lower())
 
 
 def parse_instamart_response(
@@ -24,6 +40,7 @@ def parse_instamart_response(
     if not raw_response or "data" not in raw_response:
         return []
 
+    logger.info(f"Instamart response: {raw_response}")
     cards = raw_response.get("data", {}).get("cards", [])
     extracted_records: list[dict[str, Any]] = []
     seen_skus: set[str] = set()
@@ -51,12 +68,20 @@ def parse_instamart_response(
             actual_brand = prod.get("brand") or ""
             parent_name = prod.get("displayName") or ""
 
-            # Brand filter matching (if target_brand is provided)
+            # Filter ONLY by brand name:
+            # Matches if either target_brand OR query matches the API's brand field
             if target_brand or query:
-                expected_norm = normalize_text(target_brand)
-                actual_norm = normalize_text(actual_brand)
-                query_norm = normalize_text(query)
-                if query_norm != target_brand and actual_norm != expected_norm and actual_norm.replace(" ", "") != expected_norm.replace(" ", ""):
+                def clean(s: str | None) -> str:
+                    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+                actual_b = clean(actual_brand)
+                target_b = clean(target_brand)
+                query_b = clean(query)
+
+                matches_target = target_b and (target_b == actual_b or target_b in actual_b or actual_b in target_b)
+                matches_query = query_b and (query_b == actual_b or query_b in actual_b or actual_b in query_b)
+
+                if not (matches_target or matches_query):
                     continue
 
             variations = prod.get("variations", [])
@@ -91,8 +116,13 @@ def parse_instamart_response(
                 max_allowed_qty = cart_allowed.get("allowedQuantity")
                 dark_store_id = str(v.get("podId") or "")
 
+                # Pick only the first image and prefix with CDN URL from ENV
+                raw_images = v.get("imageIds") or []
+                image_url = f"{INSTAMART_IMAGE_BASE_URL}{raw_images[0]}" if raw_images else None
+
                 # Extra unstructured platform-specific data -> JSONB
                 platform_metadata = {
+                    "image": image_url,
                     "spin_id": v.get("spinId"),
                     "category": v.get("category"),
                     "sub_category_type": v.get("subCategoryType"),
@@ -102,7 +132,6 @@ def parse_instamart_response(
                     "dimensions": v.get("dimensions"),
                     "quantity_limit_breached_message": cart_allowed.get("quantityLimitBreachedMessage"),
                     "low_stock_text": inv_info.get("lowStockText"),
-                    "image_ids": v.get("imageIds", []),
                     "variation_tags": v.get("variationTags", []),
                     "discount_value": price_data.get("discountValue"),
                     "offer_applied": price_data.get("offerApplied"),

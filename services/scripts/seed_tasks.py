@@ -10,22 +10,10 @@ QUEUE_NAME = "instamart_tasks"
 # Sample tickets matching your workflow
 TEST_TICKETS = [
     {
-        "brand_id": "brand_coke_001",
-        "brand": "Coca-Cola",
-        "query": "coca cola",
-        "pincode": "400001"
-    },
-    {
-        "brand_id": "brand_cloud9_001",
-        "brand": "Cloud9",
-        "query": "cloud9",
-        "pincode": "400001"
-    },
-    {
-        "brand_id": "brand_cloud9_001",
-        "brand": "Cloud9",
-        "query": "cloud9",
-        "pincode": "400001"
+        "brand_id": "brand_redbull_001",
+        "brand": "Red Bull",
+        "query": "Red Bull",
+        "pincode": "400009"
     }
 ]
 

@@ -7,7 +7,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://stoki_user:stoki_password@localhost:5432/stoki_db",
+    "postgresql://stoki:stoki_password@localhost:5434/stoki_db",
 )
 
 # Engine configuration with connection pooling and health checks

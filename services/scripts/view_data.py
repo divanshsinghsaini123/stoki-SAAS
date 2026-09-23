@@ -19,18 +19,21 @@ def show_records():
             print("No records found yet. Push tasks with seed_tasks.py and run worker.py.")
             return
 
-        fmt = "{:<12} | {:<8} | {:<25} | {:<10} | {:<12} | {:<10}"
-        print(fmt.format("Platform", "Pincode", "Product Title", "Selling Price", "Stock Status", "Brand ID"))
-        print("-" * 90)
+        fmt = "{:<10} | {:<8} | {:<25} | {:<8} | {:<12} | {:<45}"
+        print(fmt.format("Platform", "Pincode", "Product Title", "Price", "Stock Status", "Image URL"))
+        print("-" * 125)
         for r in records:
             title = (r.title[:22] + "...") if len(r.title) > 25 else r.title
+            meta = r.platform_metadata or {}
+            img = meta.get("image") or "N/A"
+            img_short = (img[:42] + "...") if len(img) > 45 else img
             print(fmt.format(
                 str(r.platform),
                 str(r.pincode),
                 title,
                 str(r.selling_price),
                 str(r.stock_status),
-                str(r.brand_id)
+                img_short
             ))
 
 

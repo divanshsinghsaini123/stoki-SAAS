@@ -5,11 +5,18 @@ import os
 import random
 import time
 import redis
+import sys
+from pathlib import Path
 
-from packages.database.connection import get_db_context
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
+
+from packages.database.connection import get_db_context, Base, engine
 from packages.database.models import InventorySnapshot
-from .scraper import InstamartScraper
-from .parser import parse_instamart_response
+# from .scraper import InstamartScraper
+# from .parser import parse_instamart_response
+# change to above 
+from scraper import InstamartScraper
+from parser import parse_instamart_response
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("instamart-worker")
@@ -20,6 +27,7 @@ QUEUE_NAME = "instamart_tasks"
 
 def save_to_database(snapshots_data: list[dict]):
     if not snapshots_data:
+        logger.warning("0 records extracted — nothing to persist to database.")
         return
 
     with get_db_context() as db:
@@ -60,23 +68,33 @@ def process_ticket(scraper: InstamartScraper, ticket_data: dict):
 
 
 def start_worker():
-    r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+    # Automatically create tables in PostgreSQL if they do not exist
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables verified/created successfully.")
+
+    r = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=None)
     scraper = InstamartScraper(headless=True)
     logger.info(f"Instamart worker running. Listening on queue '{QUEUE_NAME}'...")
 
     try:
         while True:
-            task = r.blpop(QUEUE_NAME, timeout=10)
-            if not task:
+            try:
+                task = r.blpop(QUEUE_NAME, timeout=5)
+                if not task:
+                    continue
+
+                _, raw_payload = task
+                ticket_data = json.loads(raw_payload)
+
+                process_ticket(scraper, ticket_data)
+
+                cooldown = random.uniform(3.0, 5.0)
+                time.sleep(cooldown)
+
+            except (redis.exceptions.TimeoutError, TimeoutError):
                 continue
-
-            _, raw_payload = task
-            ticket_data = json.loads(raw_payload)
-
-            process_ticket(scraper, ticket_data)
-
-            cooldown = random.uniform(3.0, 5.0)
-            time.sleep(cooldown)
+            except Exception as e:
+                logger.error(f"Error processing ticket: {e}", exc_info=True)
 
     except KeyboardInterrupt:
         logger.info("Stopping worker...")

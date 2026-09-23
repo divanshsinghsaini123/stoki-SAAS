@@ -28,6 +28,7 @@ class InventorySnapshot(Base):
     )
 
     # Core identification fields
+    brand_id = Column(String(100), nullable=True, index=True)
     platform = Column(String(50), nullable=False, index=True)  # e.g., 'instamart', 'blinkit', 'zepto'
     pincode = Column(String(10), nullable=False, index=True)
     dark_store_id = Column(String(100), nullable=False, index=True)  # e.g., podId in Instamart
