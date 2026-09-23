@@ -19,7 +19,7 @@ TEST_TICKETS = [
         "brand_id": "brand_cloud9_001",
         "brand": "Cloud9",
         "query": "cloud9",
-        "pincode": "136400001129"
+        "pincode": "400001"
     },
     {
         "brand_id": "brand_cloud9_001",
