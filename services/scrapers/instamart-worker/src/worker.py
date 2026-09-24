@@ -8,18 +8,17 @@ import redis
 
 from packages.database.connection import get_db_context
 from packages.database.models import InventorySnapshot
-from .scraper import fetch_instamart_data
-from .parser import parse_instamart_cards
+from .scraper import InstamartScraper
+from .parser import parse_instamart_response
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("instamart-worker")
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 QUEUE_NAME = "instamart_tasks"
 
 
 def save_to_database(snapshots_data: list[dict]):
-    """Persists extracted snapshot dictionaries into PostgreSQL."""
     if not snapshots_data:
         return
 
@@ -30,34 +29,43 @@ def save_to_database(snapshots_data: list[dict]):
     logger.info(f"Persisted {len(snapshots_data)} records to database.")
 
 
-def process_ticket(ticket_data: dict):
-    """Executes scrape, parsing, and database storage for a single ticket."""
+def process_ticket(scraper: InstamartScraper, ticket_data: dict):
+    brand_id = ticket_data.get("brand_id")
     pincode = ticket_data.get("pincode")
-    query = ticket_data.get("query")  # e.g., "cloud9" or specific SKU search
+    query = ticket_data.get("query")
+    target_brand = ticket_data.get("brand", query)
 
-    logger.info(f"Processing ticket -> Pincode: {pincode}, Query: {query}")
+    if not brand_id or not pincode or not query:
+        logger.error(f"Invalid ticket format: {ticket_data}")
+        return
 
-    # 1. Fetch raw payload from Instamart API
-    raw_response = fetch_instamart_data(pincode=pincode, query=query)
+    logger.info(f"Processing ticket -> Brand ID: {brand_id}, Pincode: {pincode}, Query: {query}")
+
+    # 1. Fetch raw API response
+    raw_response = scraper.fetch_search_results(pincode=pincode, query=query)
     if not raw_response:
         logger.warning(f"No response returned for pincode {pincode}")
         return
 
-    # 2. Parse items and map to InventorySnapshot schema
-    extracted_rows = parse_instamart_cards(raw_response, pincode=pincode)
-
-    # 3. Store into DB via shared packages
+    # 2. Parse items and attach brand_id
+    extracted_rows = parse_instamart_response(
+        raw_response=raw_response,
+        pincode=pincode,
+        brand_id=brand_id,
+        target_brand=target_brand,
+        query=query
+    )
+    # 3. Save to database
     save_to_database(extracted_rows)
 
 
 def start_worker():
-    """Main daemon loop consuming jobs from Redis."""
     r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+    scraper = InstamartScraper(headless=True)
     logger.info(f"Instamart worker running. Listening on queue '{QUEUE_NAME}'...")
 
-    while True:
-        try:
-            # BLPOP blocks until a task is available: returns (queue_name, data)
+    try:
+        while True:
             task = r.blpop(QUEUE_NAME, timeout=10)
             if not task:
                 continue
@@ -65,18 +73,15 @@ def start_worker():
             _, raw_payload = task
             ticket_data = json.loads(raw_payload)
 
-            process_ticket(ticket_data)
+            process_ticket(scraper, ticket_data)
 
-            # Polite jitter delay between requests to avoid IP bans
-            cooldown = random.uniform(3.0, 6.0)
-            logger.info(f"Cooldown sleeping for {cooldown:.2f}s...")
+            cooldown = random.uniform(3.0, 5.0)
             time.sleep(cooldown)
 
-        except redis.ConnectionError:
-            logger.error("Lost connection to Redis. Retrying in 5s...")
-            time.sleep(5)
-        except Exception as e:
-            logger.error(f"Error processing ticket: {e}", exc_info=True)
+    except KeyboardInterrupt:
+        logger.info("Stopping worker...")
+    finally:
+        scraper.close()
 
 
 if __name__ == "__main__":
