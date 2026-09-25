@@ -8,18 +8,19 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # Test tickets for testing scraper workflows
 TEST_TICKETS = [
-    {
-        "brand_id": "brand_redbull_001",
-        "brand": "Red Bull",
-        "query": "Red Bull",
-        "pincode": "400001",
-    },
+    # {
+    #     "brand_id": "brand_redbull_001",
+    #     "brand": "Red Bull",
+    #     "query": "Red Bull",
+    #     "pincode": "400001",
+    # }
+    # ,
     {
         "brand_id": "brand_redbull_001",
         "brand": "Red Bull",
         "query": "Red Bull",
         "pincode": "400009",
-    },
+    }
 ]
 
 QUEUE_ALIASES = {
@@ -31,10 +32,13 @@ QUEUE_ALIASES = {
     "im": "instamart_tasks",
     "instamart": "instamart_tasks",
     "instamart_tasks": "instamart_tasks",
+    "zepto": "zepto_tasks",
+    "zapto": "zepto_tasks",
+    "zepto_tasks": "zepto_tasks",
 }
 
 
-def seed_queue(queue_name: str = "bigbasket_tasks"):
+def seed_queue(queue_name: str = "zepto_tasks"):
     try:
         r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
         r.ping()
@@ -57,10 +61,10 @@ def seed_queue(queue_name: str = "bigbasket_tasks"):
 
 
 if __name__ == "__main__":
-    arg = sys.argv[1].lower() if len(sys.argv) > 1 else "bigbasket_tasks"
+    arg = sys.argv[1].lower() if len(sys.argv) > 1 else "zepto_tasks"
 
     if arg == "all":
-        for q in ["bigbasket_tasks", "blinkit_tasks", "instamart_tasks"]:
+        for q in ["bigbasket_tasks", "blinkit_tasks", "instamart_tasks", "zepto_tasks"]:
             seed_queue(q)
     else:
         target_queue = QUEUE_ALIASES.get(arg, arg)

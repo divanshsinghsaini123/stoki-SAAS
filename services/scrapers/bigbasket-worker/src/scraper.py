@@ -45,10 +45,6 @@ class BigBasketScraper:
             locale="en-GB",
             timezone_id="Asia/Kolkata",
             viewport={"width": 1366, "height": 768},
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-            ),
         )
         self.page = self.context.new_page()
         self._init_session()
@@ -161,47 +157,61 @@ class BigBasketScraper:
                     const maxPages = 4;
                     const allProducts = [];
                     const seenIds = new Set();
-                    const searchSlug = search_brand.toLowerCase().replace(/ /g, '%20');
+                    const searchSlug = encodeURIComponent(search_brand.toLowerCase());
 
-                    while (page <= maxPages) {
-                        const searchUrl = `https://www.bigbasket.com/listing-svc/v2/products?type=ps&slug=${searchSlug}&page=${page}&bucket_id=81`;
-                        console.log(`[BIGBASKET FETCHING URL]: ${searchUrl}`);
-                        const r7 = await fetch(searchUrl, {
-                            headers: {
-                                'x-channel': 'BB-WEB',
-                                'x-entry-context': 'bbnow',
-                                'x-entry-context-id': '10',
-                                'x-caller': 'UI-KIRK',
-                                'Accept': 'application/json, text/plain, */*'
+                    // Try bb-b2c first (full catalog), then fallback to bbnow if needed
+                    const entryContexts = [
+                        { context: 'bb-b2c', id: '100' },
+                        { context: 'bbnow', id: '10' }
+                    ];
+
+                    for (const ctx of entryContexts) {
+                        page = 1;
+                        while (page <= maxPages) {
+                            const searchUrl = `https://www.bigbasket.com/listing-svc/v2/products?type=ps&slug=${searchSlug}&page=${page}&bucket_id=81`;
+                            const r7 = await fetch(searchUrl, {
+                                headers: {
+                                    'x-channel': 'BB-WEB',
+                                    'x-entry-context': ctx.context,
+                                    'x-entry-context-id': ctx.id,
+                                    'x-caller': 'UI-KIRK',
+                                    'Accept': 'application/json, text/plain, */*'
+                                }
+                            });
+
+                            if (r7.status === 204) break;
+                            if (r7.status !== 200) {
+                                // If status is not 200/204 on first context, try next context
+                                break;
                             }
-                        });
 
-                        if (r7.status !== 200) {
-                            return { error: `Listing search failed with status ${r7.status}: ${(await r7.text()).substring(0, 150)}` };
-                        }
-                        const d7 = await r7.json();
-
-                        let prods = [];
-                        if (d7.tabs && d7.tabs.length > 0 && d7.tabs[0].product_info) {
-                            prods = d7.tabs[0].product_info.products || [];
-                        } else if (d7.products && Array.isArray(d7.products)) {
-                            prods = d7.products;
-                        }
-
-                        if (prods.length === 0) break;
-
-                        let foundNew = false;
-                        for (const p of prods) {
-                            const pid = String(p.id || "");
-                            if (pid && !seenIds.has(pid)) {
-                                seenIds.add(pid);
-                                allProducts.push(p);
-                                foundNew = true;
+                            const d7 = await r7.json();
+                            let prods = [];
+                            if (d7.tabs && d7.tabs.length > 0 && d7.tabs[0].product_info) {
+                                prods = d7.tabs[0].product_info.products || [];
+                            } else if (d7.products && Array.isArray(d7.products)) {
+                                prods = d7.products;
                             }
+
+                            if (prods.length === 0) break;
+
+                            let foundNew = false;
+                            for (const p of prods) {
+                                const pid = String(p.id || "");
+                                if (pid && !seenIds.has(pid)) {
+                                    seenIds.add(pid);
+                                    allProducts.push(p);
+                                    foundNew = true;
+                                }
+                            }
+
+                            if (!foundNew) break;
+                            page += 1;
+                            await new Promise(r => setTimeout(r, 800));
                         }
 
-                        if (!foundNew) break;
-                        page += 1;
+                        // If products found in primary catalog, no need for second door
+                        if (allProducts.length > 0) break;
                     }
 
                     const darkStoreId = getCookie('_bb_sa_ids') || getCookie('_bb_nhid') || getCookie('_bb_dsid') || String(pincode);

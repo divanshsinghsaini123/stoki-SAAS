@@ -86,3 +86,39 @@ class InventorySnapshot(Base):
             f"stock={self.in_stock}, "
             f"scraped_at={self.scraped_at})>"
         )
+
+
+class ScraperFailureLog(Base):
+    """Stores failed scrape attempts across workers (Zepto, Blinkit, Instamart, BigBasket)."""
+
+    __tablename__ = "scraper_failure_logs"
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+
+    platform = Column(String(50), nullable=False, index=True)  # 'zepto', 'blinkit', 'instamart', 'bigbasket'
+    brand_id = Column(String(100), nullable=True, index=True)
+    pincode = Column(String(10), nullable=False, index=True)
+    query = Column(String(255), nullable=False)
+    status = Column(String(50), nullable=False, default="FAILED", index=True)
+    error_message = Column(String(1000), nullable=True)
+    error_details = Column(JSONB, nullable=True, server_default=text("'{}'::jsonb"))
+
+    failed_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        index=True,
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<ScraperFailureLog(platform='{self.platform}', "
+            f"pincode='{self.pincode}', "
+            f"query='{self.query}', "
+            f"error='{self.error_message}')>"
+        )
