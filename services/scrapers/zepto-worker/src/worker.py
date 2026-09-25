@@ -140,7 +140,8 @@ def start_worker():
 
                 process_ticket(scraper, ticket_data)
 
-                cooldown = random.uniform(2.5, 4.5)
+                cooldown = float(os.getenv("ZEPTO_COOLDOWN_SECONDS", "60.0")) + random.uniform(1.0, 5.0)
+                logger.info(f"Task completed. Cooling down for {cooldown:.1f}s to avoid Zepto 429 rate limits...")
                 time.sleep(cooldown)
 
             except (redis.exceptions.TimeoutError, TimeoutError):
