@@ -1,5 +1,5 @@
 import logging
-import random
+import os
 import re
 import time
 import uuid
@@ -7,10 +7,6 @@ from typing import Any
 from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger("bigbasket-scraper")
-
-BRAVE_PATH = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
-CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-
 
 def clean_alphanumeric(value: str | None) -> str:
     """Strips spaces and non-alphanumeric characters for robust comparison."""
@@ -21,22 +17,30 @@ class BigBasketScraper:
     def __init__(self, headless: bool = False):
         self.playwright = sync_playwright().start()
 
-        # Choose installed browser binary that clears Akamai Bot Manager
-        import os
-        executable_path = None
-        if os.path.exists(BRAVE_PATH):
-            executable_path = BRAVE_PATH
-        elif os.path.exists(CHROME_PATH):
-            executable_path = CHROME_PATH
+        launch_args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        custom_exec = os.getenv("CHROME_PATH") or os.getenv("BROWSER_PATH")
+        channel = os.getenv("PLAYWRIGHT_CHANNEL", "chrome")
 
-        launch_kwargs: dict[str, Any] = {
-            "headless": headless,
-            "args": ["--disable-blink-features=AutomationControlled", "--no-sandbox"],
-        }
-        if executable_path:
-            launch_kwargs["executable_path"] = executable_path
-
-        self.browser = self.playwright.chromium.launch(**launch_kwargs)
+        if custom_exec and os.path.exists(custom_exec):
+            self.browser = self.playwright.chromium.launch(
+                executable_path=custom_exec,
+                headless=headless,
+                args=launch_args,
+            )
+        else:
+            try:
+                # Use standard Chrome channel if available on the system
+                self.browser = self.playwright.chromium.launch(
+                    channel=channel,
+                    headless=headless,
+                    args=launch_args,
+                )
+            except Exception:
+                # Fall back to standard Playwright Chromium (e.g. Docker / Linux servers)
+                self.browser = self.playwright.chromium.launch(
+                    headless=headless,
+                    args=launch_args,
+                )
         self.context = self.browser.new_context(
             locale="en-GB",
             timezone_id="Asia/Kolkata",
@@ -59,32 +63,29 @@ class BigBasketScraper:
         self, pincode: str, query: str, target_brand: str | None = None
     ) -> dict | None:
         """
-        Executes sequential BigBasket flow inside the authenticated browser:
-        1. places/autocomplete: resolves pincode to place ID
-        2. places/details: resolves coordinates (lat, lng)
+        Executes verified BigBasket flow inside the browser context:
+        1. places/autocomplete: resolves target pincode to place ID
+        2. places/details: extracts GPS coordinates (lat, lng)
         3. ui-svc/serviceable: validates delivery feasibility
-        4. member-svc/current-delivery-address: binds address & updates _bb_sa_ids
-        5. ui-svc/app-data: retrieves catalog bucket ID
-        6. listing-svc/term-completion: retrieves brand & category slugs
-        7. listing-svc/products: fetches paginated products
+        4. member-svc/current-delivery-address: binds dark store / address with valid x-csurftoken
+        5. listing-svc/products: fetches paginated product cards
         """
         try:
             search_brand = target_brand or query
             token = str(uuid.uuid4())
 
-            # Evaluate full sequential workflow natively within the browser context
             flow_result = self.page.evaluate(
                 """
                 async ({ pincode, search_brand, token }) => {
                     const getCookie = (name) => {
-                        const value = `; ${document.cookie}`;
-                        const parts = value.split(`; ${name}=`);
+                        const value = '; ' + document.cookie;
+                        const parts = value.split('; ' + name + '=');
                         if (parts.length === 2) return parts.pop().split(';').shift();
                         return null;
                     };
 
-                    // STEP 1: Autocomplete
-                    const r1 = await fetch(`https://www.bigbasket.com/places/v1/places/autocomplete/?inputText=${pincode}&token=${token}`, {
+                    // STEP 1: Autocomplete Pincode
+                    const r1 = await fetch(`https://www.bigbasket.com/places/v1/places/autocomplete/?inputText=${encodeURIComponent(pincode)}&token=${token}`, {
                         headers: {
                             'x-channel': 'BB-WEB',
                             'x-entry-context': 'bbnow',
@@ -94,11 +95,11 @@ class BigBasketScraper:
                     if (r1.status !== 200) return { error: `Autocomplete failed with status ${r1.status}` };
                     const d1 = await r1.json();
                     const predictions = d1.predictions || [];
-                    if (predictions.length === 0) return { error: `No predictions for pincode ${pincode}` };
+                    if (predictions.length === 0) return { error: `No address suggestions for pincode ${pincode}` };
                     const placeId = predictions[0].placeId;
                     const description = predictions[0].description || "";
 
-                    // STEP 2: Details
+                    // STEP 2: Coordinate Resolution
                     const r2 = await fetch(`https://www.bigbasket.com/places/v1/places/details/?placeId=${placeId}&token=${token}&xArm=898&yArm=230`, {
                         headers: {
                             'x-channel': 'BB-WEB',
@@ -109,7 +110,7 @@ class BigBasketScraper:
                     if (r2.status !== 200) return { error: `Place details failed with status ${r2.status}` };
                     const d2 = await r2.json();
                     const loc = d2.geometry ? d2.geometry.location : null;
-                    if (!loc) return { error: `No coordinates for place ${placeId}` };
+                    if (!loc) return { error: `No coordinates found for place ${placeId}` };
                     const lat = loc.lat;
                     const lng = loc.lng;
 
@@ -121,13 +122,14 @@ class BigBasketScraper:
                             'x-entry-context-id': '10'
                         }
                     });
-                    if (r3.status !== 200) return { error: `Serviceable check failed with status ${r3.status}` };
+                    if (r3.status !== 200) return { error: `Serviceability check failed with status ${r3.status}` };
                     const d3 = await r3.json();
                     const ecs = d3.serviceable_ecs_info || {};
                     if (Object.keys(ecs).length === 0) return { unserviceable: true, pincode };
 
-                    // STEP 4: Bind Delivery Address in Session
                     const csrf = getCookie('csurftoken') || '';
+                    if (!csrf) return { error: "No csurftoken cookie found in session" };
+
                     const r4 = await fetch('https://www.bigbasket.com/member-svc/v2/member/current-delivery-address/', {
                         method: 'PUT',
                         headers: {
@@ -147,67 +149,43 @@ class BigBasketScraper:
                             contact_zipcode: String(pincode)
                         })
                     });
-
-                    // Wait small tick for session cookies to sync
-                    await new Promise(res => setTimeout(res, 600));
-
-                    // STEP 5: App Configuration Bucket ID
-                    const r5 = await fetch(`https://www.bigbasket.com/ui-svc/v1/app-data/?i=${Date.now()}`, {
-                        headers: {
-                            'x-channel': 'BB-WEB',
-                            'x-entry-context': 'bbnow',
-                            'x-entry-context-id': '10',
-                            'x-caller': 'UI-KIRK'
-                        }
-                    });
-                    let bucketId = 81;
-                    if (r5.status === 200) {
-                        const d5 = await r5.json();
-                        bucketId = d5.bucket_id || 81;
+                    if (r4.status !== 200) {
+                        return { error: `Address binding r4 failed with status ${r4.status}: ${(await r4.text()).substring(0, 100)}` };
                     }
 
-                    // STEP 6: Term Completion (Slugs Resolution)
-                    const r6 = await fetch(`https://www.bigbasket.com/listing-svc/v1/product/term-completion?term=${encodeURIComponent(search_brand)}`, {
-                        headers: {
-                            'x-channel': 'BB-WEB',
-                            'x-entry-context': 'bbnow',
-                            'x-entry-context-id': '10'
-                        }
-                    });
-                    let brandSlug = search_brand.replace(/ /g, '-').toLowerCase();
-                    let categorySlug = '';
-                    if (r6.status === 200) {
-                        const d6 = await r6.json();
-                        const bList = (d6.brands && d6.brands.values) || [];
-                        const cList = (d6.categories && d6.categories.values) || [];
-                        if (bList.length > 0) brandSlug = bList[0].slug;
-                        if (cList.length > 0) categorySlug = cList[0].slug;
-                    }
+                    // Small pause to allow session cookies to update
+                    await new Promise(resolve => setTimeout(resolve, 500));
 
-                    // STEP 7: Product Listing Search (type=ps)
+                    // STEP 5: Paginated Product Search
                     let page = 1;
                     const maxPages = 4;
                     const allProducts = [];
                     const seenIds = new Set();
+                    const searchSlug = search_brand.toLowerCase().replace(/ /g, '%20');
 
                     while (page <= maxPages) {
-                        const r7 = await fetch(`https://www.bigbasket.com/listing-svc/v2/products?type=ps&slug=${encodeURIComponent(brandSlug)}&page=${page}&bucket_id=${bucketId}`, {
+                        const searchUrl = `https://www.bigbasket.com/listing-svc/v2/products?type=ps&slug=${searchSlug}&page=${page}&bucket_id=81`;
+                        console.log(`[BIGBASKET FETCHING URL]: ${searchUrl}`);
+                        const r7 = await fetch(searchUrl, {
                             headers: {
                                 'x-channel': 'BB-WEB',
                                 'x-entry-context': 'bbnow',
                                 'x-entry-context-id': '10',
                                 'x-caller': 'UI-KIRK',
-                                'osmos-enabled': 'true',
                                 'Accept': 'application/json, text/plain, */*'
                             }
                         });
 
-                        if (r7.status !== 200) break;
+                        if (r7.status !== 200) {
+                            return { error: `Listing search failed with status ${r7.status}: ${(await r7.text()).substring(0, 150)}` };
+                        }
                         const d7 = await r7.json();
 
-                        let prods = d7.products || [];
-                        if (prods.length === 0 && d7.tabs && d7.tabs.length > 0) {
-                            prods = (d7.tabs[0].product_info && d7.tabs[0].product_info.products) || [];
+                        let prods = [];
+                        if (d7.tabs && d7.tabs.length > 0 && d7.tabs[0].product_info) {
+                            prods = d7.tabs[0].product_info.products || [];
+                        } else if (d7.products && Array.isArray(d7.products)) {
+                            prods = d7.products;
                         }
 
                         if (prods.length === 0) break;

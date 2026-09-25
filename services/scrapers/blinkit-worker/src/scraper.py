@@ -1,10 +1,10 @@
 import logging
+import os
 import random
 import re
-import secrets
 import time
-import uuid
-import requests
+from typing import Any
+from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger("blinkit-scraper")
 
@@ -13,8 +13,6 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
 
-AUTH_KEY = "c761ec3633c22afad934fb17a66385c1c06c5472b4898b866b7306186d0bb477"
-
 
 def clean_alphanumeric(value: str | None) -> str:
     """Strips spaces and non-alphanumeric characters for robust matching."""
@@ -22,216 +20,220 @@ def clean_alphanumeric(value: str | None) -> str:
 
 
 class BlinkitScraper:
-    def __init__(self):
-        self.session = requests.Session()
-        self.device_id = secrets.token_hex(8)
-        self.session_uuid = str(uuid.uuid4())
-        self.base_headers = {
-            "app_client": "consumer_web",
-            "app_version": "52434332",
-            "web_app_version": "1008010016",
-            "rn_bundle_version": "1009003012",
-            "auth_key": AUTH_KEY,
-            "device_id": self.device_id,
-            "session_uuid": self.session_uuid,
-            "User-Agent": USER_AGENT,
-            "Content-Type": "application/json",
-            "Accept": "*/*",
-        }
+    def __init__(self, headless: bool = True):
+        self.playwright = sync_playwright().start()
+
+        launch_args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        custom_exec = os.getenv("CHROME_PATH") or os.getenv("BROWSER_PATH")
+        channel = os.getenv("PLAYWRIGHT_CHANNEL", "chrome")
+
+        if custom_exec and os.path.exists(custom_exec):
+            self.browser = self.playwright.chromium.launch(
+                executable_path=custom_exec,
+                headless=headless,
+                args=launch_args,
+            )
+        else:
+            try:
+                # Use standard Chrome channel if available on system
+                self.browser = self.playwright.chromium.launch(
+                    channel=channel,
+                    headless=headless,
+                    args=launch_args,
+                )
+            except Exception:
+                # Fallback to standard Playwright Chromium (Docker / Linux servers)
+                self.browser = self.playwright.chromium.launch(
+                    headless=headless,
+                    args=launch_args,
+                )
+
+        self.context = self.browser.new_context(
+            locale="en-GB",
+            timezone_id="Asia/Kolkata",
+            viewport={"width": 1280, "height": 720},
+            user_agent=USER_AGENT,
+        )
+        self.page = self.context.new_page()
+        self._init_session()
+
+    def _init_session(self):
+        logger.info("Initializing Playwright Chromium session on blinkit.com...")
+        self.page.goto("https://blinkit.com/", wait_until="domcontentloaded", timeout=45000)
+        time.sleep(3)
+        logger.info(f"Blinkit session initialized: '{self.page.title()}'.")
 
     def fetch_search_results(
         self, pincode: str, query: str, target_brand: str | None = None
     ) -> dict | None:
         """
-        Executes the multi-step Blinkit API chain:
+        Executes Blinkit API chain inside real Playwright Chromium context:
         1. autoSuggest (pincode -> Google Place ID)
         2. location/info (Place ID -> Lat/Lon + Serviceability)
         3. secondary-data (Lat/Lon -> Dark Store / Merchant ID)
         4. layout/search (Paginated product snippets)
         """
         try:
-            headers = dict(self.base_headers)
+            brand_filter = clean_alphanumeric(target_brand or query)
 
-            # -------------------------------------------------------------
-            # STEP 1: Address Autocomplete & Place ID
-            # -------------------------------------------------------------
-            autosuggest_url = "https://blinkit.com/location/autoSuggest"
-            params_step1 = {
-                "query": pincode,
-                "lat": "28.413333",
-                "lng": "77.072833",
-                "session_token": "",
-            }
-            res1 = self.session.get(
-                autosuggest_url, params=params_step1, headers=headers, timeout=12
+            flow_result = self.page.evaluate(
+                """
+                async ({ pincode, query, brand_filter }) => {
+                    const cleanAlpha = (val) => (val || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                    const baseHeaders = {
+                        'app_client': 'consumer_web',
+                        'app_version': '52434332',
+                        'web_app_version': '1008010016',
+                        'rn_bundle_version': '1009003012',
+                        'Content-Type': 'application/json',
+                        'Accept': '*/*'
+                    };
+
+                    // STEP 1: Address Autocomplete & Place ID
+                    const sUrl = `https://blinkit.com/location/autoSuggest?query=${encodeURIComponent(pincode)}&lat=28.413333&lng=77.072833&session_token=`;
+                    const r1 = await fetch(sUrl, { headers: baseHeaders });
+                    if (r1.status !== 200) {
+                        return { error: `Step 1 autoSuggest failed with status ${r1.status}` };
+                    }
+                    const d1 = await r1.json();
+                    const suggestions = d1.ui_data?.suggestions || [];
+                    if (!suggestions.length) {
+                        return { error: `No address suggestions found for pincode ${pincode}` };
+                    }
+
+                    const firstSug = suggestions[0];
+                    const placeId = firstSug.meta?.place_id;
+                    const sessionToken = firstSug.meta?.session_token || '';
+                    const title = firstSug.title?.text || '';
+                    const description = firstSug.subtitle?.text || '';
+
+                    // STEP 2: Coordinate Resolution & Location Verification
+                    const iUrl = `https://blinkit.com/location/info?place_id=${encodeURIComponent(placeId)}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&is_pin_moved=false&session_token=${encodeURIComponent(sessionToken)}`;
+                    const r2 = await fetch(iUrl, { headers: baseHeaders });
+                    if (r2.status !== 200) {
+                        return { error: `Step 2 location info failed with status ${r2.status}` };
+                    }
+                    const d2 = await r2.json();
+                    if (!d2.is_serviceable) {
+                        return { unserviceable: true, pincode };
+                    }
+
+                    const lat = String(d2.coordinate.lat);
+                    const lon = String(d2.coordinate.lon);
+                    const activeHeaders = { ...baseHeaders, lat, lon };
+
+                    // STEP 3: Dark-Store / Merchant Allocation
+                    const secUrl = 'https://blinkit.com/v2/services/secondary-data/?filter=city_id,cart_banner_image&offers_last_visit_ts=0';
+                    const r3 = await fetch(secUrl, { headers: activeHeaders });
+                    let merchantId = '';
+                    let cityId = null;
+                    let cityName = null;
+
+                    if (r3.status === 200) {
+                        const d3 = await r3.json();
+                        const props = d3.analytics_properties || {};
+                        let rawMid = props.merchant_id;
+                        if (!rawMid) {
+                            const merchants = props.services?.merchants || [];
+                            if (merchants.length > 0) rawMid = merchants[0].id;
+                        }
+                        merchantId = String(rawMid || '');
+                        cityId = props.city_id;
+                        cityName = props.city_name;
+                    }
+
+                    // STEP 4: Product Search with Infinite Scroll Pagination
+                    let offset = 0;
+                    const limit = 12;
+                    const maxPages = 10;
+                    const seenProductIds = new Set();
+                    const collectedSnippets = [];
+
+                    for (let page = 0; page < maxPages; page++) {
+                        const searchUrl = `https://blinkit.com/v1/layout/search?offset=${offset}&limit=${limit}&actual_query=${encodeURIComponent(query)}&q=${encodeURIComponent(query)}&search_method=basic&search_type=type_to_search`;
+                        const r4 = await fetch(searchUrl, {
+                            method: 'POST',
+                            headers: activeHeaders,
+                            body: JSON.stringify({})
+                        });
+
+                        if (r4.status !== 200) break;
+                        const d4 = await r4.json();
+                        const batchSnippets = d4.response?.snippets || [];
+                        if (!batchSnippets.length) break;
+
+                        let foundNewProduct = false;
+                        for (const snip of batchSnippets) {
+                            if (snip.widget_type === 'product_card_snippet_type_2') {
+                                const pData = snip.data || {};
+                                const pId = String(pData.product_id || '');
+                                if (!pId || seenProductIds.has(pId)) continue;
+
+                                const actualBrand = cleanAlpha(pData.brand_name?.text || '');
+                                if (brand_filter && actualBrand) {
+                                    if (!actualBrand.includes(brand_filter) && !brand_filter.includes(actualBrand)) {
+                                        continue;
+                                    }
+                                }
+
+                                seenProductIds.add(pId);
+                                foundNewProduct = true;
+                                collectedSnippets.push(snip);
+                            }
+                        }
+
+                        if (!foundNewProduct) break;
+                        offset += limit;
+                        await new Promise(r => setTimeout(r, 600));
+                    }
+
+                    return {
+                        success: true,
+                        merchant_id: merchantId,
+                        city_id: cityId,
+                        city_name: cityName,
+                        coordinates: { lat, lon },
+                        snippets: collectedSnippets
+                    };
+                }
+            """,
+                {
+                    "pincode": str(pincode),
+                    "query": query,
+                    "brand_filter": brand_filter,
+                },
             )
-            if res1.status_code != 200:
-                logger.warning(f"Step 1 autoSuggest failed with status {res1.status_code}")
+
+            if not flow_result:
+                logger.warning(f"Blinkit flow returned empty result for pincode {pincode}")
                 return None
 
-            suggestions = res1.json().get("ui_data", {}).get("suggestions", [])
-            if not suggestions:
-                logger.warning(f"No address suggestions found for pincode: {pincode}")
-                return None
-
-            first_suggestion = suggestions[0]
-            place_id = first_suggestion["meta"]["place_id"]
-            session_token = first_suggestion["meta"].get("session_token", "")
-            title = first_suggestion.get("title", {}).get("text", "")
-            description = first_suggestion.get("subtitle", {}).get("text", "")
-
-            time.sleep(random.uniform(1.0, 1.8))
-
-            # -------------------------------------------------------------
-            # STEP 2: Coordinate Resolution & Location Verification
-            # -------------------------------------------------------------
-            info_url = "https://blinkit.com/location/info"
-            params_step2 = {
-                "place_id": place_id,
-                "title": title,
-                "description": description,
-                "is_pin_moved": "false",
-                "session_token": session_token,
-            }
-            res2 = self.session.get(
-                info_url, params=params_step2, headers=headers, timeout=12
-            )
-            if res2.status_code != 200:
-                logger.warning(f"Step 2 location info failed with status {res2.status_code}")
-                return None
-
-            data_info = res2.json()
-            if not data_info.get("is_serviceable", False):
+            if flow_result.get("unserviceable"):
                 logger.warning(f"Pincode {pincode} is not serviceable by Blinkit.")
                 return {"status": "UNSERVICEABLE", "pincode": pincode}
 
-            lat = str(data_info["coordinate"]["lat"])
-            lon = str(data_info["coordinate"]["lon"])
-            headers["lat"] = lat
-            headers["lon"] = lon
-
-            time.sleep(random.uniform(1.0, 1.8))
-
-            # -------------------------------------------------------------
-            # STEP 3: Dark-Store / Merchant Allocation
-            # -------------------------------------------------------------
-            secondary_url = "https://blinkit.com/v2/services/secondary-data/"
-            params_step3 = {
-                "filter": "new_offer,show_product_group_sharing,is_new_user,cart_ab_test_variant,city_id,sku_auto_add,cart_banner_image,show_referral_login,product_sku_limit",
-                "offers_last_visit_ts": "0",
-            }
-            res3 = self.session.get(
-                secondary_url, params=params_step3, headers=headers, timeout=12
-            )
-            merchant_id = ""
-            city_id = None
-            city_name = None
-
-            if res3.status_code == 200:
-                props = res3.json().get("analytics_properties", {})
-                raw_mid = props.get("merchant_id")
-                if not raw_mid:
-                    # Fallback to express merchant list
-                    merchants = props.get("services", {}).get("merchants", [])
-                    if merchants:
-                        raw_mid = merchants[0].get("id")
-                merchant_id = str(raw_mid or "")
-                city_id = props.get("city_id")
-                city_name = props.get("city_name")
-
-            time.sleep(random.uniform(1.0, 1.8))
-
-            # -------------------------------------------------------------
-            # STEP 4: Product Search with Infinite Scroll Pagination
-            # -------------------------------------------------------------
-            offset = 0
-            limit = 12
-            max_pages = 10
-            seen_product_ids: set[str] = set()
-            collected_snippets: list[dict] = []
-
-            search_url = "https://blinkit.com/v1/layout/search"
-            brand_filter = clean_alphanumeric(target_brand or query)
-
-            for page in range(max_pages):
-                params_step4 = {
-                    "offset": offset,
-                    "limit": limit,
-                    "actual_query": query,
-                    "q": query,
-                    "search_method": "basic",
-                    "search_type": "type_to_search",
-                }
-
-                res4 = self.session.post(
-                    search_url,
-                    params=params_step4,
-                    headers=headers,
-                    json={},
-                    timeout=15,
-                )
-                if res4.status_code != 200:
-                    logger.warning(
-                        f"Search failed at offset {offset} with status {res4.status_code}"
-                    )
-                    break
-
-                batch_snippets = (
-                    res4.json().get("response", {}).get("snippets", [])
-                )
-                if not batch_snippets:
-                    break
-
-                found_new_product = False
-                for snip in batch_snippets:
-                    if snip.get("widget_type") == "product_card_snippet_type_2":
-                        p_data = snip.get("data", {})
-                        p_id = str(p_data.get("product_id") or "")
-                        if not p_id or p_id in seen_product_ids:
-                            continue
-
-                        # Check if product belongs to brand/query
-                        brand_name = clean_alphanumeric(
-                            p_data.get("brand_name", {}).get("text", "")
-                        )
-                        if brand_filter and brand_name:
-                            # Match if brand contains or is contained in target
-                            if not (
-                                brand_filter in brand_name
-                                or brand_name in brand_filter
-                            ):
-                                continue
-
-                        seen_product_ids.add(p_id)
-                        found_new_product = True
-                        collected_snippets.append(snip)
-
-                # Stop pagination if no new matching products were found in this batch
-                if not found_new_product:
-                    break
-
-                offset += limit
-                time.sleep(random.uniform(1.2, 2.5))
+            if flow_result.get("error"):
+                logger.warning(f"Blinkit flow error: {flow_result['error']}")
+                return None
 
             return {
                 "status": "SUCCESS",
                 "pincode": pincode,
-                "merchant_id": merchant_id,
-                "city_id": city_id,
-                "city_name": city_name,
-                "coordinates": {"lat": lat, "lon": lon},
-                "snippets": collected_snippets,
+                "merchant_id": flow_result.get("merchant_id", ""),
+                "city_id": flow_result.get("city_id"),
+                "city_name": flow_result.get("city_name"),
+                "coordinates": flow_result.get("coordinates", {}),
+                "snippets": flow_result.get("snippets", []),
             }
 
         except Exception as e:
-            logger.error(
-                f"Error in Blinkit scraper for pincode {pincode}: {e}",
-                exc_info=True,
-            )
+            logger.error(f"Error in Blinkit scraper for pincode {pincode}: {e}", exc_info=True)
             return None
 
     def close(self):
         try:
-            self.session.close()
+            self.browser.close()
+            self.playwright.stop()
         except Exception:
             pass
