@@ -8,19 +8,19 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # Test tickets for testing scraper workflows
 TEST_TICKETS = [
-    # {
-    #     "brand_id": "brand_redbull_001",
-    #     "brand": "Red Bull",
-    #     "query": "Red Bull",
-    #     "pincode": "400001",
-    # }
-    # ,
     {
         "brand_id": "brand_redbull_001",
         "brand": "Red Bull",
         "query": "Red Bull",
-        "pincode": "400009",
+        "pincode": "400001",
     }
+    # ,
+    # {
+    #     "brand_id": "brand_redbull_001",
+    #     "brand": "Red Bull",
+    #     "query": "Red Bull",
+    #     "pincode": "400009",
+    # }
 ]
 
 QUEUE_ALIASES = {

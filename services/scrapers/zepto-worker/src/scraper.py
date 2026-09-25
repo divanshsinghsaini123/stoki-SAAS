@@ -65,146 +65,126 @@ class ZeptoScraper:
         self.page.wait_for_timeout(3000)
         logger.info(f"Zepto session initialized: '{self.page.title()}'.")
 
-    def _get_session_tokens(self) -> tuple[str, str]:
-        """Extracts active device_id and session_id from browser context cookies."""
-        cookies = {c["name"]: c["value"] for c in self.context.cookies()}
-        device_id = cookies.get("device_id") or str(uuid.uuid4())
-        session_id = cookies.get("session_id") or str(uuid.uuid4())
-        return device_id, session_id
+    def set_location(self, pincode: str) -> bool:
+        """Sets delivery pincode on Zepto via clean browser input handshake."""
+        if self._current_pincode == pincode:
+            return True
 
-    def resolve_location(self, pincode: str) -> str | None:
-        """
-        Executes Steps 1 to 3 from Zepto API specification:
-        Step 1: Autocomplete -> place_id
-        Step 2: Place details -> lat, lng
-        Step 3: Serviceability & Store Mapping -> store_id
-        """
-        if self._current_pincode == pincode and self._current_store_id:
-            return self._current_store_id
-
-        logger.info(f"Resolving Zepto store for pincode {pincode} via direct API...")
-        device_id, session_id = self._get_session_tokens()
-
-        base_headers = {
-            "accept": "*/*",
-            "app_version": "16.31.2",
-            "appsubplatform": "WEB",
-            "tenant": "ZEPTO",
-            "device_id": device_id,
-            "session_id": session_id,
-        }
-
+        logger.info(f"Setting delivery location to pincode {pincode}...")
         try:
-            # STEP 1: Autocomplete (Pincode -> Place ID)
-            step1_url = f"https://bff-gateway.zepto.com/api/v1/maps/place/autocomplete/?place_name={pincode}"
-            r1 = self.context.request.get(step1_url, headers=base_headers, timeout=15000)
-            if r1.status != 200:
-                logger.warning(f"Step 1 Autocomplete returned status {r1.status}")
-                return None
+            if "zepto.com" not in self.page.url:
+                self.page.goto("https://www.zepto.com/", wait_until="domcontentloaded", timeout=30000)
+                self.page.wait_for_timeout(2500)
 
-            d1 = r1.json()
-            predictions = d1.get("predictions", [])
-            if not predictions:
-                logger.warning(f"No place predictions found for pincode {pincode}")
-                return None
-            place_id = predictions[0].get("place_id")
-            if not place_id:
-                return None
+            # Location button in header
+            loc_btn = self.page.locator(
+                'button:has-text("Select Location"), button:has-text("Mins"), button:has-text("Delivery"), header button'
+            ).first
 
-            # STEP 2: Place Details (Place ID -> Coordinates)
-            step2_url = f"https://bff-gateway.zepto.com/api/v1/maps/place/details/?place_id={place_id}"
-            r2 = self.context.request.get(step2_url, headers=base_headers, timeout=15000)
-            if r2.status != 200:
-                logger.warning(f"Step 2 Place Details returned status {r2.status}")
-                return None
+            self.page.wait_for_timeout(500)
+            try:
+                loc_btn.click(force=True, timeout=5000)
+            except Exception:
+                self.page.goto("https://www.zepto.com/", wait_until="domcontentloaded", timeout=20000)
+                self.page.wait_for_timeout(2000)
+                loc_btn = self.page.locator(
+                    'button:has-text("Select Location"), button:has-text("Mins"), header button'
+                ).first
+                loc_btn.click(force=True, timeout=5000)
 
-            d2 = r2.json()
-            location = d2.get("result", {}).get("geometry", {}).get("location", {})
-            lat, lng = location.get("lat"), location.get("lng")
-            if lat is None or lng is None:
-                logger.warning(f"Coordinates not found in place details for {place_id}")
-                return None
+            # Wait for address modal and locate visible search input
+            self.page.wait_for_timeout(1500)
+            inp = self.page.locator(
+                'input[placeholder*="address"], input[placeholder*="Search"], input[type="text"]'
+            ).last
+            inp.click(force=True)
+            inp.fill(str(pincode))
+            self.page.wait_for_timeout(2000)
 
-            # STEP 3: Serviceability & Store Mapping (Coordinates -> Store ID)
-            step3_url = f"https://bff-gateway.zepto.com/api/v1/user/customer/address/location?latitude={lat}&longitude={lng}"
-            r3 = self.context.request.get(step3_url, headers=base_headers, timeout=15000)
-            if r3.status != 200:
-                logger.warning(f"Step 3 Location Resolution returned status {r3.status}")
-                return None
+            # Click address suggestion (generic to any city/pincode)
+            sug = self.page.locator(
+                f'div[data-testid="address-search-item"], li:has-text("{pincode}"), div[role="dialog"] ul li, div[role="dialog"] div[role="button"]'
+            ).first
 
-            d3 = r3.json()
-            store_id = d3.get("storeDetailedInfo", {}).get("storeId")
-            if not store_id:
-                logger.warning(f"Store ID not serviceable for coordinates {lat}, {lng}")
-                return None
-
-            self._current_pincode = pincode
-            self._current_store_id = store_id
-            logger.info(f"Resolved pincode {pincode} -> Store ID: {store_id}")
-            return store_id
+            if sug.count() > 0:
+                try:
+                    sug.click(force=True, timeout=5000)
+                except Exception:
+                    sug.dispatch_event("click")
+                self.page.wait_for_timeout(2500)
+                self._current_pincode = pincode
+                logger.info(f"Successfully set location for pincode {pincode}.")
+                return True
+            else:
+                logger.warning(f"No address suggestions found for pincode {pincode}.")
+                return False
 
         except Exception as e:
-            logger.error(f"Error resolving location for pincode {pincode}: {e}", exc_info=True)
-            return None
+            logger.error(f"Failed to set location for pincode {pincode}: {e}", exc_info=True)
+            return False
 
     def fetch_search_results(
         self, pincode: str, query: str, target_brand: str | None = None
     ) -> dict | None:
         """
-        Executes Zepto direct API scraping flow:
-        1. Resolves store_id via Steps 1-3 direct API handshake.
-        2. Dispatches Step 4 Product Search POST API directly:
+        Executes Zepto search flow in real Playwright Chromium context:
+        1. Sets pincode location via UI autocomplete handshake.
+        2. Dispatches search on Zepto and captures signed raw JSON from:
            POST https://bff-gateway.zepto.com/user-search-service/api/v3/search
         """
         try:
-            # 1. Resolve store mapping for requested pincode
-            store_id = self.resolve_location(pincode)
-            if not store_id:
-                logger.warning(f"Could not resolve store_id for pincode {pincode}")
+            # 1. Ensure location is bound to requested pincode
+            location_ok = self.set_location(pincode)
+            if not location_ok:
+                logger.warning(f"Pincode {pincode} could not be set on Zepto.")
+
+            # 2. Intercept search responses
+            captured_payloads: list[dict] = []
+
+            def on_response(res):
+                if "user-search-service/api/v3/search" in res.url and res.status == 200:
+                    try:
+                        captured_payloads.append(res.json())
+                    except Exception:
+                        pass
+
+            self.page.on("response", on_response)
+
+            # 3. Trigger search input
+            search_btn = self.page.locator(
+                'a[data-testid="search-bar-icon"], header button:has-text("Search"), button:has-text("Search for"), a[href*="/search"]'
+            ).first
+            if search_btn.count() > 0 and search_btn.is_visible():
+                try:
+                    search_btn.click(force=True, timeout=5000)
+                except Exception:
+                    search_btn.dispatch_event("click")
+                self.page.wait_for_timeout(1000)
+
+            # Locate search input field
+            try:
+                self.page.wait_for_selector('input[type="text"], input[placeholder*="Search"]', timeout=6000)
+            except Exception:
+                pass
+
+            search_inp = self.page.locator('input[type="text"], input[placeholder*="Search"]').last
+            search_inp.click(force=True)
+            search_inp.fill(query)
+            self.page.keyboard.press("Enter")
+            self.page.wait_for_timeout(4000)
+
+            self.page.remove_listener("response", on_response)
+
+            if not captured_payloads:
+                logger.warning(f"No search payload intercepted for query '{query}' in pincode {pincode}.")
                 return None
 
-            device_id, session_id = self._get_session_tokens()
-
-            # STEP 4: Product Search (Store ID -> Inventory Data)
-            search_headers = {
-                "store_id": store_id,
-                "tenant": "ZEPTO",
-                "device_id": device_id,
-                "session_id": session_id,
-                "app_version": "16.31.2",
-                "appsubplatform": "WEB",
-                "content-type": "application/json",
-                "accept": "*/*",
-            }
-
-            payload = {
-                "intentId": str(uuid.uuid4()),
-                "mode": "AUTOSUGGEST",
-                "pageNumber": 0,
-                "query": query,
-                "userSessionId": session_id,
-            }
-
-            logger.info(f"Dispatching direct search API for query '{query}' (store: {store_id})...")
-            search_url = "https://bff-gateway.zepto.com/user-search-service/api/v3/search"
-            response = self.context.request.post(
-                search_url,
-                headers=search_headers,
-                data=payload,
-                timeout=20000,
-            )
-
-            if response.status != 200:
-                logger.warning(f"Step 4 Search API returned status {response.status}: {response.text()[:200]}")
-                return None
-
-            data = response.json()
             return {
                 "status": "SUCCESS",
                 "pincode": pincode,
                 "query": query,
                 "target_brand": target_brand,
-                "payloads": [data],
+                "payloads": captured_payloads,
             }
 
         except Exception as e:
