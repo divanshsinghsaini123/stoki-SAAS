@@ -88,36 +88,32 @@ class ZeptoScraper:
 
         logger.info(f"Setting delivery location to pincode {pincode}...")
         try:
-            if "zepto.com" not in self.page.url:
-                self.page.goto("https://www.zepto.com/", wait_until="domcontentloaded", timeout=30000)
-                self.page.wait_for_timeout(2500)
+            # 1. Reset user-position in localStorage to guarantee clean 'Select Location' state
+            self.page.evaluate("() => { try { localStorage.removeItem('user-position'); } catch(e){} }")
+            self.page.goto("https://www.zepto.com/", wait_until="domcontentloaded", timeout=30000)
+            self.page.wait_for_timeout(2000)
 
-            # Location button in header
+            # 2. Click location button in header
             loc_btn = self.page.locator(
-                'button:has-text("Select Location"), button:has-text("Mins"), button:has-text("Delivery"), header button'
+                'button:has-text("Select Location"), [data-testid="user-address"], header div:has-text("Delivery"), header button'
             ).first
 
-            self.page.wait_for_timeout(500)
             try:
                 loc_btn.click(force=True, timeout=5000)
             except Exception:
-                self.page.goto("https://www.zepto.com/", wait_until="domcontentloaded", timeout=20000)
-                self.page.wait_for_timeout(2000)
-                loc_btn = self.page.locator(
-                    'button:has-text("Select Location"), button:has-text("Mins"), header button'
-                ).first
-                loc_btn.click(force=True, timeout=5000)
+                loc_btn.dispatch_event("click")
 
-            # Wait for address modal and locate visible search input
-            self.page.wait_for_timeout(1500)
+            # 3. Locate address search input inside modal
+            self.page.wait_for_timeout(1000)
             inp = self.page.locator(
                 'input[placeholder*="address"], input[placeholder*="Search"], input[type="text"]'
             ).last
+            inp.wait_for(state="visible", timeout=10000)
             inp.click(force=True)
             inp.fill(str(pincode))
             self.page.wait_for_timeout(2000)
 
-            # Click address suggestion (generic to any city/pincode)
+            # 4. Click address suggestion matching pincode
             sug = self.page.locator(
                 f'div[data-testid="address-search-item"], li:has-text("{pincode}"), div[role="dialog"] ul li, div[role="dialog"] div[role="button"]'
             ).first
@@ -153,6 +149,7 @@ class ZeptoScraper:
             location_ok = self.set_location(pincode)
             if not location_ok:
                 logger.warning(f"Pincode {pincode} could not be set on Zepto.")
+                return None
 
             # 2. Intercept search responses
             captured_payloads: list[dict] = []
