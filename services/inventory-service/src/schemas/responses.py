@@ -27,6 +27,11 @@ class LiveStockItem(BaseModel):
 
 class LiveStockResponse(BaseModel):
     total_records: int
+    page: int = 1
+    page_size: int = 50
+    total_pages: int = 1
+    has_next: bool = False
+    has_prev: bool = False
     cached: bool = False
     items: list[LiveStockItem]
 
@@ -177,5 +182,8 @@ class NotificationItem(BaseModel):
 class NotificationListResponse(BaseModel):
     unread_count: int
     total_notifications: int
+    page: int = 1
+    page_size: int = 50
+    total_pages: int = 1
     notifications: list[NotificationItem]
 

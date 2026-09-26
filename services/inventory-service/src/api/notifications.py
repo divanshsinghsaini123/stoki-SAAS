@@ -18,21 +18,31 @@ except ImportError:
 router = APIRouter(prefix="/notifications", tags=["Notifications & Alerts"])
 
 
+import math
+
 @router.get("", response_model=NotificationListResponse)
 def list_notifications(
     tenant_id: str | None = Query(None, description="Optional tenant ID"),
     unread_only: bool = Query(False, description="Filter only unread notifications"),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db),
 ):
-    """Returns in-app notification feed including scan completions, stockouts, and billing alerts."""
+    """Returns paginated in-app notification feed including scan completions and alerts."""
     query = db.query(Notification)
     if tenant_id:
         query = query.filter(Notification.tenant_id == tenant_id)
     if unread_only:
         query = query.filter(Notification.is_read == False)
 
-    notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
+    total_matching = query.count()
+    offset = (page - 1) * page_size
+    notifications = (
+        query.order_by(Notification.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
 
     unread_count = (
         db.query(Notification)
@@ -54,9 +64,14 @@ def list_notifications(
         for n in notifications
     ]
 
+    total_pages = max(1, math.ceil(total_matching / page_size)) if total_matching > 0 else 1
+
     return NotificationListResponse(
         unread_count=unread_count,
-        total_notifications=len(items),
+        total_notifications=total_matching,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
         notifications=items,
     )
 
