@@ -5,10 +5,15 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
-DATABASE_URL = os.getenv(
+raw_db_url = os.getenv(
     "DATABASE_URL",
     "postgresql://stoki:stoki_password@localhost:5434/stoki_db",
 )
+# Ensure synchronous driver for SQLAlchemy create_engine
+DATABASE_URL = raw_db_url.replace("postgresql+asyncpg://", "postgresql://")
+# If running outside docker and host is 'postgres', fall back to 'localhost'
+if "@postgres:" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("@postgres:", "@localhost:")
 
 # Engine configuration with connection pooling and health checks
 engine = create_engine(
