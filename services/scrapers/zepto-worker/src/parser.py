@@ -115,7 +115,11 @@ def parse_zepto_response(
                     ]
                     image_url = None
                     if images:
-                        image_url = f"https://cdn.zeptonow.com/production///tr:w-600,ar-100-100,pr-true,f-auto,q-80/{images[0]}"
+                        img_base = os.getenv(
+                            "ZEPTO_IMAGE_BASE_URL",
+                            "https://cdn.zeptonow.com/production///tr:w-600,ar-100-100,pr-true,f-auto,q-80/",
+                        )
+                        image_url = f"{img_base.rstrip('/')}/{images[0].lstrip('/')}"
 
                     # Ratings
                     rating_summary = variant.get("ratingSummary") or {}

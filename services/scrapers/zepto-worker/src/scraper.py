@@ -1,10 +1,20 @@
 import logging
 import os
+import random
 import re
+import sys
 import time
-import uuid
+from pathlib import Path
 from typing import Any
 from playwright.sync_api import sync_playwright
+
+# Add project root to sys.path and load environment
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
 
 logger = logging.getLogger("zepto-scraper")
 
@@ -21,15 +31,15 @@ def clean_alphanumeric(value: str | None) -> str:
 
 class ZeptoScraper:
     def __init__(self, headless: bool = True):
+        self.base_url = os.getenv("ZEPTO_BASE_URL", "https://www.zepto.com").rstrip("/")
+        self.search_api_pattern = os.getenv(
+            "ZEPTO_SEARCH_API_PATTERN", "user-search-service/api/v3/search"
+        )
+        self.init_max_retries = int(os.getenv("SCRAPER_INIT_MAX_RETRIES", "3"))
+
         self.playwright = sync_playwright().start()
-        
 
         launch_args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
-        # launch_args = [
-        #     "--disable-blink-features=AutomationControlled",
-        #     "--no-sandbox",
-        #     "--disable-dev-shm-usage",
-        # ]
         if headless:
             launch_args.append("--headless=new")
 
@@ -44,42 +54,49 @@ class ZeptoScraper:
             )
         else:
             try:
-                # Use standard Chrome channel if available on system
                 self.browser = self.playwright.chromium.launch(
                     channel=channel,
                     headless=headless,
                     args=launch_args,
                 )
             except Exception:
-                # Fallback to bundled Playwright Chromium (Docker / Linux servers)
                 self.browser = self.playwright.chromium.launch(
                     headless=headless,
                     args=launch_args,
                 )
-        # # Dynamically match UA to browser's actual engine version
-        # browser_version = getattr(self.browser, "version", "133.0.0.0")
-        # actual_ua = (
-        #     f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        #     f"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{browser_version} Safari/537.36"
-        # )
+
+        temp_context = self.browser.new_context()
+        raw_ua = temp_context.new_page().evaluate("navigator.userAgent")
+        temp_context.close()
+
+        clean_ua = re.sub(r"HeadlessChrome/([0-9\.]+)", r"Chrome/\1", raw_ua)
+        logger.info(f"Using dynamic synchronized User-Agent: {clean_ua}")
 
         self.context = self.browser.new_context(
             locale="en-GB",
             timezone_id="Asia/Kolkata",
             viewport={"width": 1280, "height": 720},
-            user_agent=USER_AGENT,
+            user_agent=clean_ua,
         )
-        # self.context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         self.page = self.context.new_page()
         self._current_pincode = None
         self._current_store_id = None
-        self._init_session()
+        self._init_session(max_retries=self.init_max_retries)
 
-    def _init_session(self):
-        logger.info("Initializing Playwright Chromium session on zepto.com...")
-        self.page.goto("https://www.zepto.com/", wait_until="domcontentloaded", timeout=45000)
-        self.page.wait_for_timeout(3000)
-        logger.info(f"Zepto session initialized: '{self.page.title()}'.")
+    def _init_session(self, max_retries: int = 3):
+        """Initializes Zepto session with up to max_retries attempts on homepage only."""
+        logger.info(f"Initializing Playwright Chromium session on {self.base_url}...")
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.page.goto(self.base_url, wait_until="domcontentloaded", timeout=45000)
+                self.page.wait_for_timeout(3000)
+                logger.info(f"Zepto session initialized: '{self.page.title()}'.")
+                return
+            except Exception as e:
+                logger.warning(f"[Attempt {attempt}/{max_retries}] Error loading {self.base_url}: {e}")
+                time.sleep(5)
+
+        logger.error(f"Failed to obtain healthy Zepto session after {max_retries} attempts.")
 
     def set_location(self, pincode: str) -> bool:
         """Sets delivery pincode on Zepto via clean browser input handshake."""
@@ -90,7 +107,7 @@ class ZeptoScraper:
         try:
             # 1. Reset user-position in localStorage to guarantee clean 'Select Location' state
             self.page.evaluate("() => { try { localStorage.removeItem('user-position'); } catch(e){} }")
-            self.page.goto("https://www.zepto.com/", wait_until="domcontentloaded", timeout=30000)
+            self.page.goto(self.base_url, wait_until="domcontentloaded", timeout=30000)
             self.page.wait_for_timeout(2000)
 
             # 2. Click location button in header
@@ -139,10 +156,9 @@ class ZeptoScraper:
         self, pincode: str, query: str, target_brand: str | None = None
     ) -> dict | None:
         """
-        Executes Zepto search flow in real Playwright Chromium context:
+        Executes Zepto search flow in real Playwright Chromium context with ZERO retries:
         1. Sets pincode location via UI autocomplete handshake.
-        2. Dispatches search on Zepto and captures signed raw JSON from:
-           POST https://bff-gateway.zepto.com/user-search-service/api/v3/search
+        2. Dispatches search and captures signed raw JSON matching ZEPTO_SEARCH_API_PATTERN.
         """
         try:
             # 1. Ensure location is bound to requested pincode
@@ -153,9 +169,10 @@ class ZeptoScraper:
 
             # 2. Intercept search responses
             captured_payloads: list[dict] = []
+            pattern = self.search_api_pattern
 
             def on_response(res):
-                if "user-search-service/api/v3/search" in res.url and res.status == 200:
+                if pattern in res.url and res.status == 200:
                     try:
                         captured_payloads.append(res.json())
                     except Exception:

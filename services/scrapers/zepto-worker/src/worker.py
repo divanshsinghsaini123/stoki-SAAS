@@ -11,6 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Load environment variables from root .env
+from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
+
 # Add current directory to sys.path for scraper/parser
 CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
@@ -125,7 +129,8 @@ def start_worker():
     logger.info("Database tables verified/created successfully.")
 
     r = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=None)
-    scraper = ZeptoScraper()
+    headless = os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes")
+    scraper = ZeptoScraper(headless=headless)
     logger.info(f"Zepto worker running. Listening on queue '{QUEUE_NAME}'...")
 
     try:
@@ -140,7 +145,10 @@ def start_worker():
 
                 process_ticket(scraper, ticket_data)
 
-                cooldown = float(os.getenv("ZEPTO_COOLDOWN_SECONDS", "60.0")) + random.uniform(1.0, 5.0)
+                base_cooldown = float(
+                    os.getenv("ZEPTO_COOLDOWN_SECONDS") or os.getenv("SCRAPER_COOLDOWN_SECONDS", "60.0")
+                )
+                cooldown = max(60.0, base_cooldown) + random.uniform(2.0, 5.0)
                 logger.info(f"Task completed. Cooling down for {cooldown:.1f}s to avoid Zepto 429 rate limits...")
                 time.sleep(cooldown)
 

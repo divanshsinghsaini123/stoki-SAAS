@@ -2,9 +2,19 @@ import logging
 import os
 import random
 import re
+import sys
 import time
+from pathlib import Path
 from typing import Any
 from playwright.sync_api import sync_playwright
+
+# Add project root to sys.path and load environment
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
 
 logger = logging.getLogger("blinkit-scraper")
 
@@ -21,9 +31,27 @@ def clean_alphanumeric(value: str | None) -> str:
 
 class BlinkitScraper:
     def __init__(self, headless: bool = True):
+        self.base_url = os.getenv("BLINKIT_BASE_URL", "https://blinkit.com").rstrip("/")
+        self.autosuggest_url = os.getenv(
+            "BLINKIT_AUTOSUGGEST_URL", f"{self.base_url}/location/autoSuggest"
+        )
+        self.location_info_url = os.getenv(
+            "BLINKIT_LOCATION_INFO_URL", f"{self.base_url}/location/info"
+        )
+        self.secondary_data_url = os.getenv(
+            "BLINKIT_SECONDARY_DATA_URL", f"{self.base_url}/v2/services/secondary-data/"
+        )
+        self.search_url = os.getenv(
+            "BLINKIT_SEARCH_URL", f"{self.base_url}/v1/layout/search"
+        )
+        self.init_max_retries = int(os.getenv("SCRAPER_INIT_MAX_RETRIES", "3"))
+
         self.playwright = sync_playwright().start()
 
         launch_args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        if headless:
+            launch_args.append("--headless=new")
+
         custom_exec = os.getenv("CHROME_PATH") or os.getenv("BROWSER_PATH")
         channel = os.getenv("PLAYWRIGHT_CHANNEL", "chrome")
 
@@ -35,14 +63,12 @@ class BlinkitScraper:
             )
         else:
             try:
-                # Use standard Chrome channel if available on system
                 self.browser = self.playwright.chromium.launch(
                     channel=channel,
                     headless=headless,
                     args=launch_args,
                 )
             except Exception:
-                # Fallback to standard Playwright Chromium (Docker / Linux servers)
                 self.browser = self.playwright.chromium.launch(
                     headless=headless,
                     args=launch_args,
@@ -55,19 +81,28 @@ class BlinkitScraper:
             user_agent=USER_AGENT,
         )
         self.page = self.context.new_page()
-        self._init_session()
+        self._init_session(max_retries=self.init_max_retries)
 
-    def _init_session(self):
-        logger.info("Initializing Playwright Chromium session on blinkit.com...")
-        self.page.goto("https://blinkit.com/", wait_until="domcontentloaded", timeout=45000)
-        time.sleep(3)
-        logger.info(f"Blinkit session initialized: '{self.page.title()}'.")
+    def _init_session(self, max_retries: int = 3):
+        """Initializes Blinkit session with up to max_retries attempts on homepage only."""
+        logger.info(f"Initializing Playwright Chromium session on {self.base_url}...")
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.page.goto(self.base_url, wait_until="domcontentloaded", timeout=45000)
+                time.sleep(3)
+                logger.info(f"Blinkit session initialized: '{self.page.title()}'.")
+                return
+            except Exception as e:
+                logger.warning(f"[Attempt {attempt}/{max_retries}] Error loading {self.base_url}: {e}")
+                time.sleep(5)
+
+        logger.error(f"Failed to obtain healthy Blinkit session after {max_retries} attempts.")
 
     def fetch_search_results(
         self, pincode: str, query: str, target_brand: str | None = None
     ) -> dict | None:
         """
-        Executes Blinkit API chain inside real Playwright Chromium context:
+        Executes Blinkit API chain inside real Playwright Chromium context with ZERO retries:
         1. autoSuggest (pincode -> Google Place ID)
         2. location/info (Place ID -> Lat/Lon + Serviceability)
         3. secondary-data (Lat/Lon -> Dark Store / Merchant ID)
@@ -78,7 +113,7 @@ class BlinkitScraper:
 
             flow_result = self.page.evaluate(
                 """
-                async ({ pincode, query, brand_filter }) => {
+                async ({ pincode, query, brand_filter, autosuggestUrl, locationInfoUrl, secondaryDataUrl, searchUrl }) => {
                     const cleanAlpha = (val) => (val || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
                     const baseHeaders = {
@@ -91,7 +126,7 @@ class BlinkitScraper:
                     };
 
                     // STEP 1: Address Autocomplete & Place ID
-                    const sUrl = `https://blinkit.com/location/autoSuggest?query=${encodeURIComponent(pincode)}&lat=28.413333&lng=77.072833&session_token=`;
+                    const sUrl = `${autosuggestUrl}?query=${encodeURIComponent(pincode)}&lat=28.413333&lng=77.072833&session_token=`;
                     const r1 = await fetch(sUrl, { headers: baseHeaders });
                     if (r1.status !== 200) {
                         return { error: `Step 1 autoSuggest failed with status ${r1.status}` };
@@ -109,7 +144,7 @@ class BlinkitScraper:
                     const description = firstSug.subtitle?.text || '';
 
                     // STEP 2: Coordinate Resolution & Location Verification
-                    const iUrl = `https://blinkit.com/location/info?place_id=${encodeURIComponent(placeId)}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&is_pin_moved=false&session_token=${encodeURIComponent(sessionToken)}`;
+                    const iUrl = `${locationInfoUrl}?place_id=${encodeURIComponent(placeId)}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&is_pin_moved=false&session_token=${encodeURIComponent(sessionToken)}`;
                     const r2 = await fetch(iUrl, { headers: baseHeaders });
                     if (r2.status !== 200) {
                         return { error: `Step 2 location info failed with status ${r2.status}` };
@@ -124,7 +159,7 @@ class BlinkitScraper:
                     const activeHeaders = { ...baseHeaders, lat, lon };
 
                     // STEP 3: Dark-Store / Merchant Allocation
-                    const secUrl = 'https://blinkit.com/v2/services/secondary-data/?filter=city_id,cart_banner_image&offers_last_visit_ts=0';
+                    const secUrl = `${secondaryDataUrl.replace(/\\/?$/, '/')}?filter=city_id,cart_banner_image&offers_last_visit_ts=0`;
                     const r3 = await fetch(secUrl, { headers: activeHeaders });
                     let merchantId = '';
                     let cityId = null;
@@ -151,8 +186,8 @@ class BlinkitScraper:
                     const collectedSnippets = [];
 
                     for (let page = 0; page < maxPages; page++) {
-                        const searchUrl = `https://blinkit.com/v1/layout/search?offset=${offset}&limit=${limit}&actual_query=${encodeURIComponent(query)}&q=${encodeURIComponent(query)}&search_method=basic&search_type=type_to_search`;
-                        const r4 = await fetch(searchUrl, {
+                        const sUrlFull = `${searchUrl}?offset=${offset}&limit=${limit}&actual_query=${encodeURIComponent(query)}&q=${encodeURIComponent(query)}&search_method=basic&search_type=type_to_search`;
+                        const r4 = await fetch(sUrlFull, {
                             method: 'POST',
                             headers: activeHeaders,
                             body: JSON.stringify({})
@@ -197,11 +232,15 @@ class BlinkitScraper:
                         snippets: collectedSnippets
                     };
                 }
-            """,
+                """,
                 {
                     "pincode": str(pincode),
                     "query": query,
                     "brand_filter": brand_filter,
+                    "autosuggestUrl": self.autosuggest_url,
+                    "locationInfoUrl": self.location_info_url,
+                    "secondaryDataUrl": self.secondary_data_url,
+                    "searchUrl": self.search_url,
                 },
             )
 

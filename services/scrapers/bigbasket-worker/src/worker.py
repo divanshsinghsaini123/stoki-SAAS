@@ -11,6 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Load environment variables from root .env
+from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
+
 # Add current directory to sys.path for scraper/parser
 CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
@@ -141,8 +145,8 @@ def start_worker():
 
                 process_ticket(scraper, ticket_data)
 
-                base_cooldown = float(os.getenv("BIGBASKET_COOLDOWN_SECONDS", "70.0"))
-                cooldown = base_cooldown + random.uniform(1.0, 3.0)
+                base_cooldown = float(os.getenv("BIGBASKET_COOLDOWN_SECONDS") or os.getenv("SCRAPER_COOLDOWN_SECONDS", "60.0"))
+                cooldown = max(60.0, base_cooldown) + random.uniform(2.0, 5.0)
                 logger.info(f"Ticket processed. Cooldown for {cooldown:.1f}s to respect rate limits...")
                 time.sleep(cooldown)
 

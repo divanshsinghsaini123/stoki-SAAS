@@ -139,7 +139,7 @@ def parse_bigbasket_response(
             "stock_badge": badge_label,
             "button": availability.get("button"),
             "show_express": availability.get("show_express"),
-            "url": f"https://www.bigbasket.com{p.get('absolute_url', '')}",
+            "url": f"{os.getenv('BIGBASKET_BASE_URL', 'https://www.bigbasket.com').rstrip('/')}{p.get('absolute_url', '')}",
             "sku_deck_type": p.get("sku_deck_type"),
             "usps": usps_list,
             "coordinates": coordinates,
