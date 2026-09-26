@@ -13,11 +13,24 @@ def clean_alphanumeric(value: str | None) -> str:
     return re.sub(r"[^a-z0-9]", "", (value or "").lower())
 
 
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+
 class BigBasketScraper:
-    def __init__(self, headless: bool = False):
+    def __init__(self, headless: bool = True):
         self.playwright = sync_playwright().start()
 
-        launch_args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        launch_args = [
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+        ]
+        if headless:
+            launch_args.append("--headless=new")
+
         custom_exec = os.getenv("CHROME_PATH") or os.getenv("BROWSER_PATH")
         channel = os.getenv("PLAYWRIGHT_CHANNEL", "chrome")
 
@@ -41,19 +54,83 @@ class BigBasketScraper:
                     headless=headless,
                     args=launch_args,
                 )
+
+        # Modern production Chrome 133 User-Agent (compatible with Akamai WAF rules)
+        prod_ua = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+        )
+
         self.context = self.browser.new_context(
             locale="en-GB",
             timezone_id="Asia/Kolkata",
             viewport={"width": 1366, "height": 768},
+            user_agent=prod_ua,
         )
+
+        # Comprehensive stealth evasion scripts (masks headless indicators from Akamai)
+        self.context.add_init_script("""
+            // 1. Mask webdriver
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+
+            // 2. Mock Chrome runtime object
+            window.chrome = {
+                runtime: {},
+                loadTimes: function() {},
+                csi: function() {},
+                app: {}
+            };
+
+            // 3. Mock desktop browser plugins
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [
+                    {name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format'},
+                    {name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: ''},
+                    {name: 'Native Client', filename: 'internal-nacl-plugin', description: ''}
+                ]
+            });
+
+            // 4. Languages
+            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'hi']});
+        """)
+
         self.page = self.context.new_page()
         self._init_session()
 
-    def _init_session(self):
+    def _init_session(self, max_retries: int = 8):
         logger.info("Initializing Playwright Chromium session on bigbasket.com...")
-        self.page.goto("https://www.bigbasket.com/", wait_until="domcontentloaded", timeout=45000)
-        time.sleep(4)
-        logger.info(f"BigBasket session initialized: '{self.page.title()}'. Akamai & CSURF cookies loaded.")
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.page.goto("https://www.bigbasket.com/", wait_until="domcontentloaded", timeout=45000)
+                time.sleep(3)
+                title = (self.page.title() or "").strip()
+
+                if "access denied" in title.lower() or not title:
+                    logger.warning(
+                        f"[Attempt {attempt}/{max_retries}] BigBasket returned '{title}'. "
+                        f"Clearing cache/cookies and waiting 5s before reloading..."
+                    )
+                    try:
+                        self.context.clear_cookies()
+                        self.page.evaluate("() => { try { localStorage.clear(); sessionStorage.clear(); } catch(e){} }")
+                    except Exception:
+                        pass
+
+                    time.sleep(5)
+                    continue
+
+                logger.info(f"BigBasket session initialized: '{title}'. Akamai & CSURF cookies loaded.")
+                return
+
+            except Exception as e:
+                logger.warning(f"[Attempt {attempt}/{max_retries}] Error loading bigbasket.com: {e}")
+                try:
+                    self.context.clear_cookies()
+                except Exception:
+                    pass
+                time.sleep(5)
+
+        logger.error(f"Failed to obtain healthy BigBasket session after {max_retries} attempts.")
 
     def fetch_search_results(
         self, pincode: str, query: str, target_brand: str | None = None
@@ -149,15 +226,15 @@ class BigBasketScraper:
                         return { error: `Address binding r4 failed with status ${r4.status}: ${(await r4.text()).substring(0, 100)}` };
                     }
 
-                    // Small pause to allow session cookies to update
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Pause to allow session cookies and dark store IDs to propagate
+                    await new Promise(resolve => setTimeout(resolve, 1000));
 
                     // STEP 5: Paginated Product Search
                     let page = 1;
                     const maxPages = 4;
                     const allProducts = [];
                     const seenIds = new Set();
-                    const searchSlug = encodeURIComponent(search_brand.toLowerCase());
+                    const searchSlug = encodeURIComponent(search_brand.trim().toLowerCase().replace(/\\s+/g, '-'));
 
                     // Try bb-b2c first (full catalog), then fallback to bbnow if needed
                     const entryContexts = [
@@ -165,11 +242,13 @@ class BigBasketScraper:
                         { context: 'bbnow', id: '10' }
                     ];
 
+                    let lastErrorStatus = null;
+
                     for (const ctx of entryContexts) {
                         page = 1;
                         while (page <= maxPages) {
                             const searchUrl = `https://www.bigbasket.com/listing-svc/v2/products?type=ps&slug=${searchSlug}&page=${page}&bucket_id=81`;
-                            const r7 = await fetch(searchUrl, {
+                            let r7 = await fetch(searchUrl, {
                                 headers: {
                                     'x-channel': 'BB-WEB',
                                     'x-entry-context': ctx.context,
@@ -179,9 +258,23 @@ class BigBasketScraper:
                                 }
                             });
 
+                            // If burst throttled (429) or transient error, retry once after backoff
+                            if (r7.status === 429 || r7.status >= 500) {
+                                await new Promise(r => setTimeout(r, 12000));
+                                r7 = await fetch(searchUrl, {
+                                    headers: {
+                                        'x-channel': 'BB-WEB',
+                                        'x-entry-context': ctx.context,
+                                        'x-entry-context-id': ctx.id,
+                                        'x-caller': 'UI-KIRK',
+                                        'Accept': 'application/json, text/plain, */*'
+                                    }
+                                });
+                            }
+
                             if (r7.status === 204) break;
                             if (r7.status !== 200) {
-                                // If status is not 200/204 on first context, try next context
+                                lastErrorStatus = r7.status;
                                 break;
                             }
 
@@ -214,6 +307,10 @@ class BigBasketScraper:
                         if (allProducts.length > 0) break;
                     }
 
+                    if (allProducts.length === 0 && lastErrorStatus && lastErrorStatus !== 200 && lastErrorStatus !== 204) {
+                        return { error: `Listing API throttled or failed with status ${lastErrorStatus}` };
+                    }
+
                     const darkStoreId = getCookie('_bb_sa_ids') || getCookie('_bb_nhid') || getCookie('_bb_dsid') || String(pincode);
 
                     return {
@@ -238,7 +335,11 @@ class BigBasketScraper:
                 return {"status": "UNSERVICEABLE", "pincode": pincode}
 
             if flow_result.get("error"):
-                logger.warning(f"BigBasket flow error: {flow_result['error']}")
+                err_msg = str(flow_result["error"])
+                logger.warning(f"BigBasket flow error: {err_msg}")
+                if "403" in err_msg or "denied" in err_msg.lower():
+                    logger.info("403 encountered. Refreshing BigBasket session...")
+                    self._init_session()
                 return None
 
             return {

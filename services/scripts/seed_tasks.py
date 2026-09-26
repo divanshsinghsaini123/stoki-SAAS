@@ -14,13 +14,13 @@ TEST_TICKETS = [
         "query": "Red Bull",
         "pincode": "400001",
     }
-    # ,
-    # {
-    #     "brand_id": "brand_redbull_001",
-    #     "brand": "Red Bull",
-    #     "query": "Red Bull",
-    #     "pincode": "400009",
-    # }
+    ,
+    {
+        "brand_id": "brand_redbull_001",
+        "brand": "Red Bull",
+        "query": "Red Bull",
+        "pincode": "400009",
+    }
 ]
 
 QUEUE_ALIASES = {
@@ -38,7 +38,7 @@ QUEUE_ALIASES = {
 }
 
 
-def seed_queue(queue_name: str = "zepto_tasks"):
+def seed_queue(queue_name: str = "bigbasket_tasks"):
     try:
         r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
         r.ping()
@@ -61,7 +61,7 @@ def seed_queue(queue_name: str = "zepto_tasks"):
 
 
 if __name__ == "__main__":
-    arg = sys.argv[1].lower() if len(sys.argv) > 1 else "zepto_tasks"
+    arg = sys.argv[1].lower() if len(sys.argv) > 1 else "bigbasket_tasks"
 
     if arg == "all":
         for q in ["bigbasket_tasks", "blinkit_tasks", "instamart_tasks", "zepto_tasks"]:

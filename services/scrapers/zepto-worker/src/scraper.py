@@ -23,7 +23,14 @@ class ZeptoScraper:
     def __init__(self, headless: bool = True):
         self.playwright = sync_playwright().start()
 
-        launch_args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        launch_args = [
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+        ]
+        if headless:
+            launch_args.append("--headless=new")
+
         custom_exec = os.getenv("CHROME_PATH") or os.getenv("BROWSER_PATH")
         channel = os.getenv("PLAYWRIGHT_CHANNEL", "chrome")
 
@@ -48,12 +55,20 @@ class ZeptoScraper:
                     args=launch_args,
                 )
 
+        # Dynamically match UA to browser's actual engine version
+        browser_version = getattr(self.browser, "version", "133.0.0.0")
+        actual_ua = (
+            f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            f"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{browser_version} Safari/537.36"
+        )
+
         self.context = self.browser.new_context(
             locale="en-GB",
             timezone_id="Asia/Kolkata",
             viewport={"width": 1280, "height": 720},
-            user_agent=USER_AGENT,
+            user_agent=actual_ua,
         )
+        self.context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         self.page = self.context.new_page()
         self._current_pincode = None
         self._current_store_id = None

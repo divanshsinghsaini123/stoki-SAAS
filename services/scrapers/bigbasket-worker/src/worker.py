@@ -18,7 +18,7 @@ if str(CURRENT_DIR) not in sys.path:
 
 import redis
 from packages.database.connection import get_db_context, Base, engine
-from packages.database.models import InventorySnapshot
+from packages.database.models import InventorySnapshot, ScraperFailureLog
 
 try:
     from .scraper import BigBasketScraper
@@ -47,6 +47,27 @@ def save_to_database(snapshots_data: list[dict]):
     logger.info(f"Persisted {len(snapshots_data)} BigBasket records to database.")
 
 
+def save_failure_to_database(ticket_data: dict, error_message: str, error_details: dict | None = None):
+    """Persists failed scrape attempts into PostgreSQL scraper_failure_logs table."""
+    try:
+        with get_db_context() as db:
+            failure_record = ScraperFailureLog(
+                platform="bigbasket",
+                brand_id=ticket_data.get("brand_id"),
+                pincode=str(ticket_data.get("pincode") or ""),
+                query=str(ticket_data.get("query") or ""),
+                status="FAILED",
+                error_message=str(error_message)[:1000],
+                error_details=error_details or {},
+            )
+            db.add(failure_record)
+        logger.info(
+            f"Logged failure in database -> Platform: bigbasket, Pincode: {ticket_data.get('pincode')}, Error: {error_message}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to record failure log to database: {e}", exc_info=True)
+
+
 def process_ticket(scraper: BigBasketScraper, ticket_data: dict):
     brand_id = ticket_data.get("brand_id")
     pincode = ticket_data.get("pincode")
@@ -54,32 +75,48 @@ def process_ticket(scraper: BigBasketScraper, ticket_data: dict):
     target_brand = ticket_data.get("brand", query)
 
     if not brand_id or not pincode or not query:
-        logger.error(f"Invalid ticket format: {ticket_data}")
+        err = f"Invalid ticket format: {ticket_data}"
+        logger.error(err)
+        save_failure_to_database(ticket_data, err)
         return
 
     logger.info(
         f"Processing ticket -> Brand ID: {brand_id}, Pincode: {pincode}, Query: {query}, Brand: {target_brand}"
     )
 
-    # 1. Fetch raw API response via sequential BigBasket API flow
-    raw_response = scraper.fetch_search_results(
-        pincode=pincode, query=query, target_brand=target_brand
-    )
-    if not raw_response or raw_response.get("status") != "SUCCESS":
-        logger.warning(f"No successful response returned for pincode {pincode}")
-        return
+    try:
+        # 1. Fetch raw API response via sequential BigBasket API flow
+        raw_response = scraper.fetch_search_results(
+            pincode=pincode, query=query, target_brand=target_brand
+        )
+        if not raw_response or raw_response.get("status") != "SUCCESS":
+            err = f"No successful response returned for pincode {pincode}"
+            logger.warning(err)
+            save_failure_to_database(ticket_data, err, {"status": raw_response.get("status") if raw_response else "NONE"})
+            return
 
-    # 2. Parse product listings and map to universal InventorySnapshot schema
-    extracted_rows = parse_bigbasket_response(
-        raw_response=raw_response,
-        pincode=pincode,
-        brand_id=brand_id,
-        target_brand=target_brand,
-        query=query,
-    )
+        # 2. Parse product listings and map to universal InventorySnapshot schema
+        extracted_rows = parse_bigbasket_response(
+            raw_response=raw_response,
+            pincode=pincode,
+            brand_id=brand_id,
+            target_brand=target_brand,
+            query=query,
+        )
 
-    # 3. Store into PostgreSQL
-    save_to_database(extracted_rows)
+        if not extracted_rows:
+            err = f"0 matching records parsed for query '{query}' in pincode {pincode}"
+            logger.warning(err)
+            save_failure_to_database(ticket_data, err)
+            return
+
+        # 3. Store into PostgreSQL
+        save_to_database(extracted_rows)
+
+    except Exception as e:
+        err = f"Exception processing BigBasket ticket: {e}"
+        logger.error(err, exc_info=True)
+        save_failure_to_database(ticket_data, err, {"exception": str(e)})
 
 
 def start_worker():
@@ -88,7 +125,8 @@ def start_worker():
     logger.info("Database tables verified/created successfully.")
 
     r = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=None)
-    scraper = BigBasketScraper()
+    headless = os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes")
+    scraper = BigBasketScraper(headless=headless)
     logger.info(f"BigBasket worker running. Listening on queue '{QUEUE_NAME}'...")
 
     try:
@@ -103,7 +141,9 @@ def start_worker():
 
                 process_ticket(scraper, ticket_data)
 
-                cooldown = random.uniform(2.5, 4.5)
+                base_cooldown = float(os.getenv("BIGBASKET_COOLDOWN_SECONDS", "70.0"))
+                cooldown = base_cooldown + random.uniform(1.0, 3.0)
+                logger.info(f"Ticket processed. Cooldown for {cooldown:.1f}s to respect rate limits...")
                 time.sleep(cooldown)
 
             except (redis.exceptions.TimeoutError, TimeoutError):
