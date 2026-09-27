@@ -137,12 +137,23 @@ def validate_tenant_subscription(
 
     # 4. Quota Consumption
     if consume_scan:
-        max_scans = plan.max_daily_scans
+        max_scans = plan.max_daily_scans or 0
+        hard_cap = getattr(plan, "max_daily_hard_cap", 0) or 0
         used_today = sub.scans_used_today or 0
+
+        # 4a. Universal Hard Cap Check: Absolute ceiling to protect scrapers and platforms
+        if hard_cap > 0 and used_today >= hard_cap:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily safety limit reached: Your account has hit the maximum ceiling of {hard_cap} scans today. Further scans are paused until midnight UTC for platform safety.",
+            )
+
+        # 4b. Regular Daily Allowance & Extra Credits Pool
         if used_today >= max_scans:
             extra_credits = getattr(sub, "extra_scan_credits", 0) or 0
             if extra_credits > 0:
                 sub.extra_scan_credits = extra_credits - 1
+                sub.scans_used_today = used_today + 1
                 db.commit()
             else:
                 raise HTTPException(
