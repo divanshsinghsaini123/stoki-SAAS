@@ -226,13 +226,8 @@ function PlatformCard({
   const hasPrice = price[0] !== null;
 
   return (
-    <motion.div
-      key={`${platform.id}-${pincodeIdx}-${skuIdx}`}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.25, delay: PLATFORMS.indexOf(platform) * 0.03 }}
-      className="relative rounded-xl glass border p-3 flex flex-col justify-between h-[142px] overflow-hidden"
+    <div
+      className="relative rounded-xl glass border p-3 flex flex-col justify-between h-[142px] overflow-hidden transition-all duration-200"
     >
       <div>
         {/* Platform badge */}
@@ -245,7 +240,7 @@ function PlatformCard({
           <div className="flex items-center gap-1">
             <span
               className={cn(
-                "w-1.5 h-1.5 rounded-full",
+                "w-1.5 h-1.5 rounded-full transition-colors duration-200",
                 isInStock ? "pulse-emerald" : "pulse-red"
               )}
             />
@@ -262,7 +257,7 @@ function PlatformCard({
         {/* Stock Status */}
         <div
           className={cn(
-            "text-[11px] font-semibold px-2 py-0.5 rounded-lg h-6 flex items-center",
+            "text-[11px] font-semibold px-2 py-0.5 rounded-lg h-6 flex items-center transition-colors duration-200",
             isInStock ? "badge-in-stock" : "badge-oos"
           )}
         >
@@ -292,7 +287,7 @@ function PlatformCard({
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -317,7 +312,7 @@ export function ScannerWidget() {
   const activeProduct = SKUS[activeSku];
 
   return (
-    <div className="relative rounded-2xl glass-strong border p-5 w-full max-w-lg min-h-[570px] flex flex-col justify-between">
+    <div className="relative rounded-2xl glass-strong border p-5 w-full max-w-lg h-[565px] flex flex-col justify-between overflow-hidden">
       {/* Glow orb behind widget - Emerald/Amber */}
       <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
 
@@ -357,14 +352,8 @@ export function ScannerWidget() {
         ))}
       </div>
 
-      {/* Selected Product Showcase Banner */}
-      <motion.div
-        key={activeProduct.id}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-zinc-900/80 border border-zinc-800/90 shadow-sm"
-      >
+      {/* Selected Product Showcase Banner - Fixed Height */}
+      <div className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-zinc-900/80 border border-zinc-800/90 shadow-sm h-[68px] overflow-hidden">
         <div className="w-11 h-13 shrink-0 rounded-lg flex items-center justify-center bg-black/50 border border-zinc-800/80 shadow-inner">
           <ProductThumbnail skuId={activeProduct.id} />
         </div>
@@ -388,26 +377,26 @@ export function ScannerWidget() {
             </span>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Pincode Roller */}
-      <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+      {/* Pincode Roller - Fixed Height */}
+      <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] h-[50px] overflow-hidden">
         <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden h-6 flex items-center">
           {!isTyping ? (
             <AnimatePresence mode="wait">
               <motion.div
                 key={pinIdx}
-                initial={{ y: 12, opacity: 0 }}
+                initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -12, opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="flex items-center gap-2"
+                exit={{ y: -10, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="flex items-center gap-2 h-6"
               >
                 <span className="font-mono text-sm font-bold text-[var(--text-primary)]">
                   {PINCODES[pinIdx].code}
                 </span>
-                <span className="text-xs text-zinc-300 dark:text-zinc-300 font-medium">
+                <span className="text-xs text-zinc-300 dark:text-zinc-300 font-medium truncate">
                   {PINCODES[pinIdx].city}
                 </span>
               </motion.div>
@@ -433,18 +422,16 @@ export function ScannerWidget() {
         </button>
       </div>
 
-      {/* 4-Platform Matrix */}
-      <div className="grid grid-cols-2 gap-2 min-h-[294px]">
-        <AnimatePresence>
-          {PLATFORMS.map((platform) => (
-            <PlatformCard
-              key={`${platform.id}-${pinIdx}-${activeSku}`}
-              platform={platform}
-              pincodeIdx={pinIdx}
-              skuIdx={activeSku}
-            />
-          ))}
-        </AnimatePresence>
+      {/* 4-Platform Matrix - Fixed 2x2 grid with stable keys */}
+      <div className="grid grid-cols-2 gap-2 h-[292px]">
+        {PLATFORMS.map((platform) => (
+          <PlatformCard
+            key={platform.id}
+            platform={platform}
+            pincodeIdx={pinIdx}
+            skuIdx={activeSku}
+          />
+        ))}
       </div>
 
       {/* Footer note */}
