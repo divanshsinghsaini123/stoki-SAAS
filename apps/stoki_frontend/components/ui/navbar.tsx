@@ -44,38 +44,33 @@ export function Navbar() {
             scrolled ? "gap-2 sm:gap-2.5" : "gap-3 sm:gap-4"
           )}
         >
-          {/* Island 1: Brand & Live Telemetry Capsule */}
+          {/* Island 1: Brand Capsule (No Live Button, Enhanced Height & Contrast) */}
           <motion.div
             layout
             className={cn(
-              "rounded-full flex items-center gap-2.5 transition-all duration-300",
-              "glass border border-slate-200/90 dark:border-zinc-800/90 shadow-xs",
-              scrolled ? "px-3.5 py-1.5" : "px-4 py-2",
-              "hover:border-slate-300 dark:hover:border-zinc-700"
+              "rounded-full flex items-center transition-all duration-300",
+              "bg-white/95 dark:bg-zinc-900/95 border border-slate-300 dark:border-zinc-700 shadow-md shadow-black/5 dark:shadow-black/40 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10",
+              scrolled ? "px-4 py-2" : "px-5 py-2.5 sm:py-3",
+              "hover:border-slate-400 dark:hover:border-zinc-600"
             )}
           >
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="relative flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 group-hover:scale-105 transition-transform">
-                <Zap className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 group-hover:scale-105 transition-transform">
+                <Zap className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               </div>
-              <span className="font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">
+              <span className="font-extrabold text-base tracking-tight text-zinc-950 dark:text-zinc-50">
                 Stoki
               </span>
             </Link>
-            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-zinc-700" />
-            <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Live</span>
-            </div>
           </motion.div>
 
-          {/* Island 2: Navigation Links Capsule */}
+          {/* Island 2: Navigation Links Capsule (Enhanced Height & Clearer Contrast) */}
           <motion.nav
             layout
             className={cn(
               "hidden md:flex items-center gap-1 rounded-full transition-all duration-300",
-              "glass border border-slate-200/90 dark:border-zinc-800/90 shadow-xs",
-              scrolled ? "px-2 py-1" : "px-2.5 py-1.5"
+              "bg-white/95 dark:bg-zinc-900/95 border border-slate-300 dark:border-zinc-700 shadow-md shadow-black/5 dark:shadow-black/40 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10",
+              scrolled ? "px-3 py-1.5" : "px-4 py-2 sm:py-2.5"
             )}
           >
             {NAV_LINKS.map((link) => {
@@ -85,16 +80,16 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "relative px-3.5 py-1 text-xs font-medium rounded-full transition-all duration-200",
+                    "relative px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200",
                     isActive
-                      ? "text-zinc-900 dark:text-zinc-100 font-semibold"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                      ? "text-zinc-950 dark:text-white font-bold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                   )}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="segmented-pill-active"
-                      className="absolute inset-0 rounded-full bg-slate-200/80 dark:bg-zinc-800/90 border border-slate-300/60 dark:border-zinc-700/60"
+                      className="absolute inset-0 rounded-full bg-slate-200/90 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-600 shadow-2xs"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
@@ -104,20 +99,20 @@ export function Navbar() {
             })}
           </motion.nav>
 
-          {/* Island 3: Actions & Quick Start Capsule */}
+          {/* Island 3: Actions & Quick Start Capsule (Enhanced Height & Standout CTA) */}
           <motion.div
             layout
             className={cn(
-              "rounded-full flex items-center gap-2 transition-all duration-300",
-              "glass border border-slate-200/90 dark:border-zinc-800/90 shadow-xs",
-              scrolled ? "px-2 py-1.5" : "px-2.5 py-2"
+              "rounded-full flex items-center gap-2.5 transition-all duration-300",
+              "bg-white/95 dark:bg-zinc-900/95 border border-slate-300 dark:border-zinc-700 shadow-md shadow-black/5 dark:shadow-black/40 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10",
+              scrolled ? "px-3 py-1.5" : "px-3.5 py-2 sm:py-2.5"
             )}
           >
             {/* Theme Toggle */}
             {mounted && (
               <button
                 onClick={toggleTheme}
-                className="w-7 h-7 flex items-center justify-center rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-slate-200/50 dark:hover:bg-zinc-800/60 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-zinc-800 transition-colors"
                 aria-label="Toggle theme"
               >
                 <AnimatePresence mode="wait">
@@ -129,7 +124,7 @@ export function Navbar() {
                       exit={{ scale: 0, rotate: 90 }}
                       transition={{ duration: 0.18 }}
                     >
-                      <Sun className="w-3.5 h-3.5" />
+                      <Sun className="w-4 h-4 text-amber-400" />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -139,7 +134,7 @@ export function Navbar() {
                       exit={{ scale: 0, rotate: -90 }}
                       transition={{ duration: 0.18 }}
                     >
-                      <Moon className="w-3.5 h-3.5" />
+                      <Moon className="w-4 h-4 text-zinc-700" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -149,7 +144,7 @@ export function Navbar() {
             {/* Login */}
             <Link
               href="/login"
-              className="hidden sm:inline-flex items-center px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
             >
               Login
             </Link>
@@ -157,15 +152,15 @@ export function Navbar() {
             {/* CTA Button with subtle hover arrow micro-interaction */}
             <Link
               href="/register"
-              className="group inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-xs"
+              className="group inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-sm"
             >
               <span>Start Free</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
 
             {/* Mobile Menu Toggle */}
             <button
-              className="md:hidden w-7 h-7 flex items-center justify-center rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="md:hidden w-8 h-8 flex items-center justify-center rounded-full text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >

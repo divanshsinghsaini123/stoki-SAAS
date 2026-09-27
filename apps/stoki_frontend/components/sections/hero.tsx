@@ -424,6 +424,7 @@ function PlatformCard({
 
 export function ScannerWidget() {
   const [activeSku, setActiveSku] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [pinIdx, setPinIdx] = useState(0);
   const [manualPin, setManualPin] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -442,6 +443,7 @@ export function ScannerWidget() {
   // Auto-cycle products with time (every 4.5s)
   useEffect(() => {
     skuTimerRef.current = setInterval(() => {
+      setDirection(1);
       setActiveSku((prev) => (prev + 1) % SKUS.length);
     }, 4500);
     return () => {
@@ -452,11 +454,18 @@ export function ScannerWidget() {
   const activeProduct = SKUS[activeSku];
 
   const handlePrevSku = () => {
+    setDirection(-1);
     setActiveSku((prev) => (prev === 0 ? SKUS.length - 1 : prev - 1));
   };
 
   const handleNextSku = () => {
+    setDirection(1);
     setActiveSku((prev) => (prev === SKUS.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleSelectSku = (i: number) => {
+    setDirection(i >= activeSku ? 1 : -1);
+    setActiveSku(i);
   };
 
   return (
@@ -466,58 +475,75 @@ export function ScannerWidget() {
 
       {/* 3D Product Showcase Stage - Enlarged (Height: 188px) */}
       <div className="relative rounded-xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200/90 dark:border-zinc-800/90 p-3 sm:p-3.5 mb-3 shadow-xs h-[188px] overflow-hidden flex items-center justify-between">
-        {/* Left & Center: 3D Product Mockup + Live Info with Animated Swap */}
-        <AnimatePresence mode="sync" initial={false}>
-          <motion.div
-            key={activeProduct.id}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="flex items-center gap-3.5 flex-1 min-w-0"
-          >
-            {/* Enlarged 3D Product Stage Pedestal Container */}
-            <div className="w-30 h-40 sm:w-34 sm:h-42 shrink-0 rounded-xl bg-gradient-to-b from-white to-slate-100 dark:from-zinc-900 dark:to-zinc-950 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-center relative overflow-hidden shadow-inner">
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none" />
-              <Product3DIllustration skuId={activeProduct.id} />
-            </div>
-
-            {/* Product Meta */}
-            <div className="flex-1 min-w-0 flex flex-col justify-center pl-0.5">
-              <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold shrink-0">
-                  {activeProduct.skuCode}
-                </span>
-                <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider truncate">
-                  {activeProduct.category}
-                </span>
+        {/* Left & Center: Absolute overlay stage with smooth directional slide */}
+        <div className="relative flex-1 min-w-0 h-full overflow-hidden mr-2">
+          <AnimatePresence custom={direction} initial={false}>
+            <motion.div
+              key={activeProduct.id}
+              custom={direction}
+              variants={{
+                enter: (dir: number) => ({
+                  x: dir > 0 ? 36 : -36,
+                  opacity: 0,
+                }),
+                center: {
+                  x: 0,
+                  opacity: 1,
+                },
+                exit: (dir: number) => ({
+                  x: dir > 0 ? -36 : 36,
+                  opacity: 0,
+                }),
+              }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute inset-0 flex items-center gap-3.5"
+            >
+              {/* Enlarged 3D Product Stage Pedestal Container */}
+              <div className="w-28 h-38 sm:w-32 sm:h-40 shrink-0 rounded-xl bg-gradient-to-b from-white to-slate-100 dark:from-zinc-900 dark:to-zinc-950 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-center relative overflow-hidden shadow-inner">
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none" />
+                <Product3DIllustration skuId={activeProduct.id} />
               </div>
 
-              <h4 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-zinc-100 truncate mb-1">
-                {activeProduct.name}
-              </h4>
-
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-2.5">
-                <span className="font-mono text-zinc-800 dark:text-zinc-300 font-medium">{activeProduct.packSize}</span>
-                <span>•</span>
-                <span>MRP <strong className="font-mono text-zinc-900 dark:text-zinc-200 font-bold">{activeProduct.mrp}</strong></span>
-              </div>
-
-              {/* Platform coverage badges */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center -space-x-1.5">
-                  <PlatformLogo platform="blinkit" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
-                  <PlatformLogo platform="zepto" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
-                  <PlatformLogo platform="instamart" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
-                  <PlatformLogo platform="bigbasket" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
+              {/* Product Meta */}
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold shrink-0">
+                    {activeProduct.skuCode}
+                  </span>
+                  <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider truncate">
+                    {activeProduct.category}
+                  </span>
                 </div>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                  4 Platforms Live
-                </span>
+
+                <h4 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-zinc-100 truncate mb-1">
+                  {activeProduct.name}
+                </h4>
+
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-2.5 whitespace-nowrap">
+                  <span className="font-mono text-zinc-800 dark:text-zinc-300 font-medium">{activeProduct.packSize}</span>
+                  <span>•</span>
+                  <span>MRP <strong className="font-mono text-zinc-900 dark:text-zinc-200 font-bold">{activeProduct.mrp}</strong></span>
+                </div>
+
+                {/* Platform coverage badges */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center -space-x-1.5">
+                    <PlatformLogo platform="blinkit" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
+                    <PlatformLogo platform="zepto" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
+                    <PlatformLogo platform="instamart" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
+                    <PlatformLogo platform="bigbasket" className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-zinc-900 shadow-xs" />
+                  </div>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap">
+                    4 Platforms Live
+                  </span>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
         {/* Right: Swap Controls (< and >) + Pagination Indicators */}
         <div className="flex flex-col items-center justify-between h-full pl-2 shrink-0 border-l border-slate-200/80 dark:border-zinc-800/80">
@@ -543,7 +569,7 @@ export function ScannerWidget() {
             {SKUS.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setActiveSku(i)}
+                onClick={() => handleSelectSku(i)}
                 aria-label={`Select product ${i + 1}`}
                 className={cn(
                   "h-1.5 rounded-full transition-all duration-200",
