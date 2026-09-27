@@ -88,8 +88,9 @@ class SubscriptionPlan(Base):
     plan_name = Column(String(50), nullable=False, unique=True)  # 'Starter', 'Growth', 'Enterprise'
     price = Column(Numeric(10, 2), nullable=False, default=0.0)
     billing_cycle = Column(String(20), nullable=False, default="monthly")  # 'monthly', 'yearly'
-    max_daily_scans = Column(Integer, nullable=False, default=10)
+    max_daily_scans = Column(Integer, nullable=False, default=0)
     included_extra_scans = Column(Integer, nullable=False, default=0)  # One-time bonus/pool scans bundled with this plan
+    max_daily_hard_cap = Column(Integer, nullable=False, default=0)  # Universal safety ceiling: Daily quota + extra scans cannot exceed this in 1 day
     max_brands = Column(Integer, nullable=False, default=1)
 
     allowed_platforms = Column(

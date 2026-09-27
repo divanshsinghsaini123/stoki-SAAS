@@ -162,9 +162,26 @@ def dispatch_due_campaigns() -> dict[str, Any]:
                     )
                     continue
 
-                max_scans = plan.max_daily_scans
+                max_scans = plan.max_daily_scans or 0
+                hard_cap = getattr(plan, "max_daily_hard_cap", 0) or 0
                 used_today = sub.scans_used_today or 0
 
+                # 4a. Universal Hard Cap Check: Absolute ceiling to protect scrapers and platforms
+                if hard_cap > 0 and used_today >= hard_cap:
+                    logger.warning(
+                        f"Skipping campaign '{campaign.campaign_name}' ({campaign_id_str}): "
+                        f"Tenant {campaign.tenant_id} reached universal daily hard cap ({used_today}/{hard_cap}). Scans paused until midnight UTC."
+                    )
+                    create_tenant_notification(
+                        tenant_id=str(campaign.tenant_id),
+                        n_type="system",
+                        title="Universal Daily Scan Cap Reached",
+                        message=f"Campaign '{campaign.campaign_name}' was paused because your account reached the absolute safety limit of {hard_cap} scans today. Scans will resume automatically at midnight UTC.",
+                        metadata={"campaign_id": campaign_id_str, "used_today": used_today, "hard_cap": hard_cap},
+                    )
+                    continue
+
+                # 4b. Daily Plan Limit & Extra Credits Check
                 if used_today >= max_scans:
                     # Check if tenant has extra addon/yearly scan credits available
                     extra_credits = sub.extra_scan_credits or 0
