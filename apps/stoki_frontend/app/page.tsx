@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HeroSection } from "@/components/sections/hero";
+import { ReviewsMarqueeSection } from "@/components/sections/reviews-marquee";
 import { CityRadarSection } from "@/components/sections/city-radar";
 import { BentoSection } from "@/components/sections/bento";
 import { FAQSection } from "@/components/sections/faq";
@@ -19,6 +20,7 @@ export default function LandingPage() {
       <Navbar />
       <main className="min-h-screen">
         <HeroSection />
+        <ReviewsMarqueeSection />
         <CityRadarSection />
         <BentoSection />
         <FAQSection />

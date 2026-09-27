@@ -463,7 +463,7 @@ export function HeroSection() {
           {/* Left — Copy */}
           <div className="flex flex-col gap-8">
             {/* Eyebrow badge */}
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
@@ -472,7 +472,7 @@ export function HeroSection() {
                 <span className="w-1.5 h-1.5 rounded-full pulse-emerald" />
                 Now tracking 4 Q-Commerce Platforms in Real Time
               </span>
-            </motion.div>
+            </motion.div> */}
 
             {/* Headline */}
             <motion.div
