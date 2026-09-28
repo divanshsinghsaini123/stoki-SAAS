@@ -226,14 +226,14 @@ export function ReviewsMarqueeSection() {
       <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent dark:from-zinc-950 dark:via-zinc-950/80 dark:to-transparent z-10" />
 
       <div className="max-w-6xl mx-auto px-6 mb-10 text-center">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 mb-3">
+        {/* <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 mb-3">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           Trusted by Q-Commerce Leaders
-        </span>
-        <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
+        </span> */}
+        <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
           Loved by brand managers tracking{" "}
           <span className="gradient-text">100,000+ dark stores daily.</span>
-        </h3>
+        </h1>
       </div>
 
       {/* Brand Logos Strip */}
