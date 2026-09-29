@@ -42,19 +42,35 @@ def get_current_subscription(
             billing_cycle="monthly",
             status="active",
             max_daily_scans=10,
-            scans_used_today=2,
-            scans_remaining_today=0,
+            max_brands=1,
+            scans_used_today=0,
+            scans_remaining_today=10,
+            extra_scan_credits=0,
             current_period_end=None,
             is_expired=False,
         )
 
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == sub.plan_id).first()
     max_scans = plan.max_daily_scans if plan else 10
+    max_brands = plan.max_brands if plan else 1
+    now = datetime.utcnow()
+
+    # 1. Midnight quota reset check
+    if not sub.last_quota_reset_at or sub.last_quota_reset_at.date() < now.date():
+        sub.scans_used_today = 0
+        sub.last_quota_reset_at = now
+        db.commit()
+
     used_today = sub.scans_used_today or 0
     remaining = max(0, max_scans - used_today)
+
+    # 2. Expiry check & DB sync
     is_expired = False
-    if sub.current_period_end and sub.current_period_end < datetime.utcnow():
+    if sub.current_period_end and sub.current_period_end < now:
         is_expired = True
+        if sub.status != "expired":
+            sub.status = "expired"
+            db.commit()
 
     return SubscriptionResponse(
         tenant_id=str(sub.tenant_id),
@@ -62,8 +78,13 @@ def get_current_subscription(
         billing_cycle=plan.billing_cycle if plan else "monthly",
         status="expired" if is_expired else sub.status,
         max_daily_scans=max_scans,
+        max_brands=max_brands,
         scans_used_today=used_today,
         scans_remaining_today=remaining,
+        included_extra_scans=plan.included_extra_scans if plan else 0,
+        extra_scan_credits=getattr(sub, "extra_scan_credits", 0) or 0,
         current_period_end=sub.current_period_end,
         is_expired=is_expired,
     )
+
+

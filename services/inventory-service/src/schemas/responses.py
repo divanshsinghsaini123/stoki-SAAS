@@ -117,6 +117,7 @@ class CampaignItem(BaseModel):
 
 
 class CreateCampaignRequest(BaseModel):
+    tenant_id: str | None = None
     brand_id: str
     campaign_name: str
     platforms: list[str] = ["blinkit", "zepto", "instamart", "bigbasket"]
@@ -159,10 +160,15 @@ class SubscriptionResponse(BaseModel):
     billing_cycle: str
     status: str
     max_daily_scans: int
+    max_brands: int = 1
     scans_used_today: int
     scans_remaining_today: int
+    included_extra_scans: int = 0
+    extra_scan_credits: int = 0
     current_period_end: datetime | None = None
     is_expired: bool = False
+
+
 
 
 # --- Notifications ---

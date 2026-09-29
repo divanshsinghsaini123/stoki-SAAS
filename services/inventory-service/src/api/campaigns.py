@@ -72,14 +72,109 @@ def list_campaigns(
     return CampaignListResponse(total_campaigns=len(items), campaigns=items)
 
 
+def validate_tenant_subscription(
+    db: Session,
+    tenant_id: str | None,
+    brand_id: str | None = None,
+    consume_scan: bool = False,
+    is_new_brand: bool = False,
+):
+    """
+    Validates tenant subscription status, expiry, brand limits, and daily scan quotas.
+    Auto-updates status to 'expired' if current_period_end has elapsed.
+    """
+    if not tenant_id:
+        return None, None
+
+    sub = db.query(TenantSubscription).filter(TenantSubscription.tenant_id == tenant_id).first()
+    if not sub:
+        raise HTTPException(
+            status_code=403,
+            detail="Active subscription required. No subscription record found for this tenant.",
+        )
+
+    now = datetime.utcnow()
+
+    # 1. Expiry Check
+    if sub.current_period_end and sub.current_period_end < now:
+        if sub.status != "expired":
+            sub.status = "expired"
+            db.commit()
+        raise HTTPException(
+            status_code=403,
+            detail=f"Subscription expired on {sub.current_period_end.strftime('%Y-%m-%d')}. Please renew your plan to continue.",
+        )
+
+    if sub.status != "active":
+        raise HTTPException(
+            status_code=403,
+            detail=f"Subscription is not active (current status: '{sub.status}'). Please check billing.",
+        )
+
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == sub.plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=403, detail="Assigned subscription plan was not found.")
+
+    # 2. Brand Count Check
+    if is_new_brand and brand_id:
+        existing_brands_count = (
+            db.query(ScanCampaign.brand_id)
+            .filter(ScanCampaign.tenant_id == tenant_id)
+            .distinct()
+            .count()
+        )
+        if existing_brands_count >= plan.max_brands:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Your plan allows up to {plan.max_brands} brand(s). You are currently tracking {existing_brands_count} brand(s). Upgrade plan to add more brands.",
+            )
+
+    # 3. Midnight Daily Quota Reset
+    if not sub.last_quota_reset_at or sub.last_quota_reset_at.date() < now.date():
+        sub.scans_used_today = 0
+        sub.last_quota_reset_at = now
+        db.commit()
+
+    # 4. Quota Consumption
+    if consume_scan:
+        max_scans = plan.max_daily_scans
+        used_today = sub.scans_used_today or 0
+        if used_today >= max_scans:
+            extra_credits = getattr(sub, "extra_scan_credits", 0) or 0
+            if extra_credits > 0:
+                sub.extra_scan_credits = extra_credits - 1
+                db.commit()
+            else:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Daily scan limit reached ({used_today}/{max_scans} scans used today) and 0 extra scan credits remaining.",
+                )
+        else:
+            sub.scans_used_today = used_today + 1
+            db.commit()
+
+    return sub, plan
+
+
 @router.post("", response_model=CampaignItem)
 def create_campaign(
     payload: CreateCampaignRequest,
     db: Session = Depends(get_db),
 ):
     """Creates a new scan campaign / schedule with target platforms, pincodes, and cron."""
+    # Validate subscription status, expiry, and brand limits
+    if payload.tenant_id:
+        validate_tenant_subscription(
+            db=db,
+            tenant_id=payload.tenant_id,
+            brand_id=payload.brand_id,
+            consume_scan=False,
+            is_new_brand=True,
+        )
+
     new_campaign = ScanCampaign(
         id=uuid.uuid4(),
+        tenant_id=uuid.UUID(payload.tenant_id) if payload.tenant_id else None,
         brand_id=payload.brand_id,
         campaign_name=payload.campaign_name,
         platforms=payload.platforms,
@@ -104,6 +199,7 @@ def create_campaign(
         is_active=new_campaign.is_active,
         created_at=new_campaign.created_at,
     )
+
 
 
 @router.get("/{campaign_id}/last-scan", response_model=LastScanResponse)
@@ -170,9 +266,20 @@ def trigger_scan(
     if not redis_client:
         raise HTTPException(status_code=503, detail="Redis queue service unavailable")
 
+    # Validate subscription and consume 1 scan (or extra credit)
+    if campaign.tenant_id:
+        validate_tenant_subscription(
+            db=db,
+            tenant_id=str(campaign.tenant_id),
+            brand_id=campaign.brand_id,
+            consume_scan=True,
+            is_new_brand=False,
+        )
+
     # Resolve Brand display name for query
     brand = db.query(Brand).filter(Brand.id == campaign.brand_id).first()
     query_text = brand.brand_name if brand else campaign.brand_id
+
 
     # Create job run record
     job_run = ScanJobRun(

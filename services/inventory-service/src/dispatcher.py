@@ -126,34 +126,68 @@ def dispatch_due_campaigns() -> dict[str, Any]:
                     )
                     continue
 
+                # 2. Expiry check: if expired, mark as 'expired' in DB and alert tenant
                 if sub.current_period_end and sub.current_period_end < now:
                     logger.warning(
-                        f"Skipping campaign '{campaign.campaign_name}' ({campaign_id_str}): "
-                        f"Tenant subscription expired on {sub.current_period_end.isoformat()}."
+                        f"Campaign '{campaign.campaign_name}' ({campaign_id_str}) skipped: "
+                        f"Tenant subscription expired on {sub.current_period_end.strftime('%Y-%m-%d')}."
+                    )
+                    sub.status = "expired"
+                    session.commit()
+                    create_tenant_notification(
+                        tenant_id=str(campaign.tenant_id),
+                        n_type="system",
+                        title="Subscription Expired",
+                        message=f"Your subscription expired on {sub.current_period_end.strftime('%Y-%m-%d')}. All scheduled scans have been paused. Please renew your plan.",
+                        metadata={"campaign_id": campaign_id_str, "status": "expired"},
                     )
                     continue
 
-                # Check Plan daily limit
+                # 3. Daily Quota Reset at midnight
+                today_date = now.date()
+                if not sub.last_quota_reset_at or sub.last_quota_reset_at.date() < today_date:
+                    sub.scans_used_today = 0
+                    sub.last_quota_reset_at = now
+                    session.commit()
+
+                # 4. Check Plan daily scan quota & extra credits pool
                 plan = (
                     session.query(SubscriptionPlan)
                     .filter(SubscriptionPlan.id == sub.plan_id)
                     .first()
                 )
-                max_scans = plan.max_daily_scans if plan else 100
-                if (sub.scans_used_today or 0) >= max_scans:
+                if not plan:
                     logger.warning(
-                        f"Skipping campaign '{campaign.campaign_name}' ({campaign_id_str}): "
-                        f"Tenant daily scan limit exceeded ({sub.scans_used_today}/{max_scans})."
-                    )
-                    # Trigger notification once
-                    create_tenant_notification(
-                        tenant_id=str(campaign.tenant_id),
-                        n_type="system",
-                        title="Daily Scan Limit Exceeded",
-                        message=f"Campaign '{campaign.campaign_name}' was skipped because your plan's daily scan limit ({max_scans}) was reached.",
-                        metadata={"campaign_id": campaign_id_str, "max_scans": max_scans},
+                        f"Skipping campaign '{campaign.campaign_name}': Tenant {campaign.tenant_id} has no valid SubscriptionPlan record assigned."
                     )
                     continue
+
+                max_scans = plan.max_daily_scans
+                used_today = sub.scans_used_today or 0
+
+                if used_today >= max_scans:
+                    # Check if tenant has extra addon/yearly scan credits available
+                    extra_credits = sub.extra_scan_credits or 0
+                    if extra_credits > 0:
+                        sub.extra_scan_credits = extra_credits - 1
+                        session.commit()
+                        logger.info(
+                            f"Tenant {campaign.tenant_id} daily limit ({max_scans}) reached; consumed 1 extra scan credit. Remaining extra: {sub.extra_scan_credits}."
+                        )
+                    else:
+                        logger.warning(
+                            f"Skipping campaign '{campaign.campaign_name}' ({campaign_id_str}): "
+                            f"Daily scan limit reached ({used_today}/{max_scans}) and 0 extra credits remaining."
+                        )
+                        create_tenant_notification(
+                            tenant_id=str(campaign.tenant_id),
+                            n_type="system",
+                            title="Daily Scan Limit Exceeded",
+                            message=f"Campaign '{campaign.campaign_name}' was skipped because your daily scan limit ({max_scans}) is exhausted and no extra scan credits remain.",
+                            metadata={"campaign_id": campaign_id_str, "max_scans": max_scans, "extra_credits": 0},
+                        )
+                        continue
+
 
             # Step B: Time Evaluation using croniter
             cron_expr = (campaign.cron_expression or "").strip()
@@ -180,8 +214,8 @@ def dispatch_due_campaigns() -> dict[str, Any]:
             logger.info(f"-> Campaign '{campaign.campaign_name}' is DUE (cron: '{cron_expr}'). Dispatching...")
 
             # Step C: Create the Job Run Record
-            platforms = campaign.platforms or ["blinkit", "zepto", "instamart", "bigbasket"]
-            pincodes = campaign.pincodes or ["400001", "400009"]
+            platforms = campaign.platforms
+            pincodes = campaign.pincodes
             total_tasks_count = len(platforms) * len(pincodes)
 
             job_run = ScanJobRun(

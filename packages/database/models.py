@@ -89,7 +89,9 @@ class SubscriptionPlan(Base):
     price = Column(Numeric(10, 2), nullable=False, default=0.0)
     billing_cycle = Column(String(20), nullable=False, default="monthly")  # 'monthly', 'yearly'
     max_daily_scans = Column(Integer, nullable=False, default=10)
+    included_extra_scans = Column(Integer, nullable=False, default=0)  # One-time bonus/pool scans bundled with this plan
     max_brands = Column(Integer, nullable=False, default=1)
+
     allowed_platforms = Column(
         JSONB,
         nullable=False,
@@ -131,6 +133,7 @@ class TenantSubscription(Base):
     current_period_start = Column(DateTime(timezone=True), nullable=True)
     current_period_end = Column(DateTime(timezone=True), nullable=True, index=True)  # Expiry date
     scans_used_today = Column(Integer, nullable=False, default=0)
+    extra_scan_credits = Column(Integer, nullable=False, default=0)  # Un-expiring addon / yearly scan pool
     last_quota_reset_at = Column(DateTime(timezone=True), nullable=True)
     payment_provider_id = Column(String(100), nullable=True)  # Customer / Subscription ID in Razorpay/Stripe
     created_at = Column(
@@ -138,6 +141,7 @@ class TenantSubscription(Base):
         nullable=False,
         server_default=func.now(),
     )
+
 
 
 class Invoice(Base):
