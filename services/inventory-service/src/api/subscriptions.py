@@ -35,25 +35,27 @@ def get_current_subscription(
     sub = query.order_by(TenantSubscription.created_at.desc()).first()
 
     if not sub:
-        # Default starter demo plan if no subscription record exists yet
+        # No subscription purchased yet
         return SubscriptionResponse(
-            tenant_id=tenant_id or "default-tenant",
-            plan_name="Starter (Free Trial)",
-            billing_cycle="monthly",
-            status="active",
-            max_daily_scans=10,
-            max_brands=1,
+            tenant_id=tenant_id or "unknown",
+            plan_name="None",
+            billing_cycle="none",
+            status="no_subscription",
+            max_daily_scans=0,
+            max_brands=0,
             scans_used_today=0,
-            scans_remaining_today=10,
+            scans_remaining_today=0,
+            included_extra_scans=0,
             extra_scan_credits=0,
             current_period_end=None,
             is_expired=False,
         )
 
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == sub.plan_id).first()
-    max_scans = plan.max_daily_scans if plan else 10
-    max_brands = plan.max_brands if plan else 1
+    max_scans = plan.max_daily_scans if plan else 0
+    max_brands = plan.max_brands if plan else 0
     now = datetime.utcnow()
+
 
     # 1. Midnight quota reset check
     if not sub.last_quota_reset_at or sub.last_quota_reset_at.date() < now.date():

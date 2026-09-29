@@ -1,0 +1,24 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Locate project root and load .env
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(PROJECT_ROOT / ".env")
+
+PORT = int(os.getenv("API_GATEWAY_PORT", "8000"))
+
+# Upstream microservices
+raw_inventory_url = os.getenv("INVENTORY_SERVICE_URL", "http://localhost:8001")
+if "http://inventory-service:" in raw_inventory_url and not os.path.exists("/.dockerenv"):
+    INVENTORY_SERVICE_URL = raw_inventory_url.replace("inventory-service:", "localhost:")
+else:
+    INVENTORY_SERVICE_URL = raw_inventory_url
+
+# JWT Authentication Config
+JWT_SECRET = os.getenv("JWT_SECRET", "stoki_super_secure_jwt_secret_key_2026")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
+
+# Database URL for Auth (tenants, tenant_users)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://stoki:stoki_password@localhost:5434/stoki_db")
