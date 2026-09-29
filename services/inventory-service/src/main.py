@@ -1,4 +1,6 @@
 import logging
+import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,6 +14,7 @@ try:
         subscriptions_router,
         notifications_router,
     )
+    from .dispatcher import start_async_scheduler, stop_async_scheduler
 except ImportError:
     from api import (
         live_stock_router,
@@ -22,9 +25,30 @@ except ImportError:
         subscriptions_router,
         notifications_router,
     )
+    from dispatcher import start_async_scheduler, stop_async_scheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("stoki-inventory-service")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manages application startup and shutdown lifecycle events."""
+    enable_scheduler = os.getenv("ENABLE_CAMPAIGN_SCHEDULER", "true").lower() in ("true", "1", "yes")
+    if enable_scheduler:
+        try:
+            start_async_scheduler()
+            logger.info("Campaign Dispatcher 1-minute heartbeat started successfully.")
+        except Exception as e:
+            logger.error(f"Failed to start Campaign Dispatcher: {e}", exc_info=True)
+    yield
+    if enable_scheduler:
+        try:
+            stop_async_scheduler()
+            logger.info("Campaign Dispatcher stopped cleanly.")
+        except Exception as e:
+            logger.error(f"Failed to stop Campaign Dispatcher: {e}", exc_info=True)
+
 
 app = FastAPI(
     title="Stoki Hyperlocal Q-Commerce Intelligence Service",
@@ -32,8 +56,10 @@ app = FastAPI(
         "Core SaaS intelligence, multi-tenant scheduling, real-time stock lookup, "
         "and availability analytics across Blinkit, Zepto, Swiggy Instamart, and BigBasket."
     ),
-    version="1.1.0",
+    version="1.2.0",
+    lifespan=lifespan,
 )
+
 
 # Enable CORS for Next.js frontend
 app.add_middleware(

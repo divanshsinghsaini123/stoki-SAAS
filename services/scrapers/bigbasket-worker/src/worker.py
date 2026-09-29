@@ -23,6 +23,7 @@ if str(CURRENT_DIR) not in sys.path:
 import redis
 from packages.database.connection import get_db_context, Base, engine
 from packages.database.models import InventorySnapshot, ScraperFailureLog
+from packages.database.repository import record_job_run_progress
 
 try:
     from .scraper import BigBasketScraper
@@ -108,19 +109,41 @@ def process_ticket(scraper: BigBasketScraper, ticket_data: dict):
             query=query,
         )
 
+        campaign_id = ticket_data.get("campaign_id")
+        job_run_id = ticket_data.get("job_run_id")
+        tenant_id = ticket_data.get("tenant_id")
+
         if not extracted_rows:
             err = f"0 matching records parsed for query '{query}' in pincode {pincode}"
             logger.warning(err)
             save_failure_to_database(ticket_data, err)
+            if job_run_id:
+                record_job_run_progress(job_run_id, "bigbasket", str(pincode), 0, success=True, error_message=err)
             return
 
-        # 3. Store into PostgreSQL
+        # 3. Attach campaign and job run metadata if provided in ticket
+        for row in extracted_rows:
+            if campaign_id:
+                row["campaign_id"] = campaign_id
+            if job_run_id:
+                row["job_run_id"] = job_run_id
+            if tenant_id:
+                row["tenant_id"] = tenant_id
+
+        # 4. Store into PostgreSQL
         save_to_database(extracted_rows)
+
+        # 5. Record job run progress
+        if job_run_id:
+            record_job_run_progress(job_run_id, "bigbasket", str(pincode), len(extracted_rows), success=True)
 
     except Exception as e:
         err = f"Exception processing BigBasket ticket: {e}"
         logger.error(err, exc_info=True)
         save_failure_to_database(ticket_data, err, {"exception": str(e)})
+        if ticket_data.get("job_run_id"):
+            record_job_run_progress(ticket_data["job_run_id"], "bigbasket", str(pincode), 0, success=False, error_message=err)
+
 
 
 def start_worker():

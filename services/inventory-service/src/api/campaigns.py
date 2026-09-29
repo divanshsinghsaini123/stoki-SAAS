@@ -201,12 +201,16 @@ def trigger_scan(
         dispatched_platforms.append(platform_name)
         for pin in pincodes:
             ticket = {
+                "ticket_id": str(uuid.uuid4()),
                 "brand_id": campaign.brand_id,
                 "brand": query_text,
                 "query": query_text,
+                "platform": platform_name.lower(),
                 "pincode": str(pin),
                 "campaign_id": str(campaign.id),
                 "job_run_id": str(job_run.id),
+                "tenant_id": str(campaign.tenant_id) if campaign.tenant_id else None,
+                "dispatched_at": datetime.utcnow().isoformat(),
             }
             redis_client.rpush(queue_name, json.dumps(ticket))
             queued_count += 1
@@ -220,3 +224,37 @@ def trigger_scan(
         dispatched_platforms=dispatched_platforms,
         message=f"Dispatched {queued_count} tasks across {len(dispatched_platforms)} platforms.",
     )
+
+
+@router.get("/dispatcher/status")
+def get_campaign_dispatcher_status():
+    """Returns the current state and telemetry of the 1-minute Campaign Dispatcher heartbeat."""
+    try:
+        from ..dispatcher import get_dispatcher_stats, async_scheduler
+    except ImportError:
+        from dispatcher import get_dispatcher_stats, async_scheduler
+
+    stats = get_dispatcher_stats()
+    is_running = bool(async_scheduler and async_scheduler.running)
+    return {
+        "scheduler_running": is_running,
+        "heartbeat_interval": "1 minute (every minute at :00s)",
+        "telemetry": stats,
+    }
+
+
+@router.post("/dispatcher/trigger-heartbeat")
+def trigger_dispatcher_heartbeat_now():
+    """Manually forces a Campaign Dispatcher heartbeat tick immediately."""
+    try:
+        from ..dispatcher import dispatch_due_campaigns
+    except ImportError:
+        from dispatcher import dispatch_due_campaigns
+
+    result = dispatch_due_campaigns()
+    return {
+        "success": True,
+        "message": f"Heartbeat tick executed manually: {result.get('dispatched_count', 0)} campaign(s) dispatched.",
+        "details": result,
+    }
+
