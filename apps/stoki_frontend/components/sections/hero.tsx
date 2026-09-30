@@ -228,63 +228,70 @@ function PlatformCard({
   return (
     <motion.div
       key={`${platform.id}-${pincodeIdx}-${skuIdx}`}
-      layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25, delay: PLATFORMS.indexOf(platform) * 0.04 }}
-      className="relative rounded-xl glass border p-3 flex flex-col gap-2 overflow-hidden"
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.25, delay: PLATFORMS.indexOf(platform) * 0.03 }}
+      className="relative rounded-xl glass border p-3 flex flex-col justify-between h-[142px] overflow-hidden"
     >
-      {/* Platform badge */}
-      <div className="flex items-center justify-between">
-        <span
-          className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider", platform.bgClass)}
-        >
-          {platform.name}
-        </span>
-        <div className="flex items-center gap-1">
+      <div>
+        {/* Platform badge */}
+        <div className="flex items-center justify-between mb-1.5">
           <span
-            className={cn(
-              "w-1.5 h-1.5 rounded-full",
-              isInStock ? "pulse-emerald" : "pulse-red"
-            )}
-          />
+            className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider", platform.bgClass)}
+          >
+            {platform.name}
+          </span>
+          <div className="flex items-center gap-1">
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                isInStock ? "pulse-emerald" : "pulse-red"
+              )}
+            />
+          </div>
         </div>
+
+        {/* Dark Store ID - Brightened contrast for readability */}
+        <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-400 font-medium tracking-wider">
+          {platform.stores[pincodeIdx]}
+        </p>
       </div>
 
-      {/* Dark Store ID - Brightened contrast for readability */}
-      <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-400 font-medium tracking-wider">
-        {platform.stores[pincodeIdx]}
-      </p>
-
-      {/* Stock Status */}
-      <div
-        className={cn(
-          "text-[11px] font-semibold px-2 py-1 rounded-lg",
-          isInStock ? "badge-in-stock" : "badge-oos"
-        )}
-      >
-        {isInStock
-          ? `IN STOCK · Max ${platform.maxQty[pincodeIdx]}`
-          : "OUT OF STOCK"}
-      </div>
-
-      {/* Price */}
-      {hasPrice ? (
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-sm font-bold tabular-nums text-[var(--text-primary)]">
-            ₹{price[0]}
-          </span>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-400 line-through tabular-nums font-medium">
-            ₹{price[1]}
-          </span>
-          <span className="text-[10px] text-emerald-400 font-semibold">
-            {Math.round(((price[1]! - price[0]!) / price[1]!) * 100)}% off
-          </span>
+      <div className="flex flex-col gap-1.5">
+        {/* Stock Status */}
+        <div
+          className={cn(
+            "text-[11px] font-semibold px-2 py-0.5 rounded-lg h-6 flex items-center",
+            isInStock ? "badge-in-stock" : "badge-oos"
+          )}
+        >
+          {isInStock
+            ? `IN STOCK · Max ${platform.maxQty[pincodeIdx]}`
+            : "OUT OF STOCK"}
         </div>
-      ) : (
-        <span className="text-[11px] text-zinc-400 dark:text-zinc-400 font-medium">Price unavailable</span>
-      )}
+
+        {/* Price */}
+        <div className="h-6 flex items-baseline gap-1.5">
+          {hasPrice ? (
+            <>
+              <span className="text-sm font-bold tabular-nums text-[var(--text-primary)]">
+                ₹{price[0]}
+              </span>
+              <span className="text-[11px] text-zinc-400 dark:text-zinc-400 line-through tabular-nums font-medium">
+                ₹{price[1]}
+              </span>
+              <span className="text-[10px] text-emerald-400 font-semibold">
+                {Math.round(((price[1]! - price[0]!) / price[1]!) * 100)}% off
+              </span>
+            </>
+          ) : (
+            <span className="text-[11px] text-zinc-400 dark:text-zinc-400 font-medium">
+              Price unavailable
+            </span>
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -310,7 +317,7 @@ export function ScannerWidget() {
   const activeProduct = SKUS[activeSku];
 
   return (
-    <div className="relative rounded-2xl glass-strong border p-5 w-full max-w-lg">
+    <div className="relative rounded-2xl glass-strong border p-5 w-full max-w-lg min-h-[570px] flex flex-col justify-between">
       {/* Glow orb behind widget - Emerald/Amber */}
       <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
 
@@ -427,7 +434,7 @@ export function ScannerWidget() {
       </div>
 
       {/* 4-Platform Matrix */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 min-h-[294px]">
         <AnimatePresence>
           {PLATFORMS.map((platform) => (
             <PlatformCard
@@ -465,7 +472,7 @@ export function HeroSection() {
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-amber-500/10 opacity-[0.05] blur-[100px] pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-6 w-full">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-16 items-start lg:pt-6">
           {/* Left — Copy */}
           <div className="flex flex-col gap-8">
             {/* Eyebrow badge */}
