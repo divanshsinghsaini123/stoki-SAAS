@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, Github, Twitter, Linkedin } from "lucide-react";
+import { Zap, Globe, MessageCircle, Briefcase } from "lucide-react";
 
 const FOOTER_LINKS = {
   Product: [
@@ -88,9 +88,9 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-3">
             {[
-              { icon: Github, href: "#", label: "GitHub" },
-              { icon: Twitter, href: "#", label: "Twitter" },
-              { icon: Linkedin, href: "#", label: "LinkedIn" },
+              { icon: Globe, href: "#", label: "Website" },
+              { icon: MessageCircle, href: "#", label: "Twitter" },
+              { icon: Briefcase, href: "#", label: "LinkedIn" },
             ].map(({ icon: Icon, href, label }) => (
               <a
                 key={label}
