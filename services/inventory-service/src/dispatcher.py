@@ -40,12 +40,36 @@ except ImportError:
 
 logger = logging.getLogger("campaign-dispatcher")
 
-QUEUE_MAP = {
-    "blinkit": "blinkit_tasks",
-    "zepto": "zepto_tasks",
-    "instamart": "instamart_tasks",
-    "bigbasket": "bigbasket_tasks",
+# Priority queue map: tier -> platform -> queue_name
+# Enterprise tasks go to a separate high-priority queue that workers poll first
+PRIORITY_QUEUE_MAP = {
+    "enterprise": {
+        "blinkit": "enterprise_blinkit_tasks",
+        "zepto": "enterprise_zepto_tasks",
+        "instamart": "enterprise_instamart_tasks",
+        "bigbasket": "enterprise_bigbasket_tasks",
+    },
+    "growth": {
+        "blinkit": "growth_blinkit_tasks",
+        "zepto": "growth_zepto_tasks",
+        "instamart": "growth_instamart_tasks",
+        "bigbasket": "growth_bigbasket_tasks",
+    },
+    "starter": {
+        "blinkit": "starter_blinkit_tasks",
+        "zepto": "starter_zepto_tasks",
+        "instamart": "starter_instamart_tasks",
+        "bigbasket": "starter_bigbasket_tasks",
+    },
 }
+
+def get_priority_tier(scan_queue_priority: int) -> str:
+    """Maps plan priority integer to queue tier name."""
+    if scan_queue_priority >= 3:
+        return "enterprise"
+    elif scan_queue_priority == 2:
+        return "growth"
+    return "starter"
 
 # Redis client for task fan-out and distributed locking
 try:
@@ -269,8 +293,13 @@ def dispatch_due_campaigns() -> dict[str, Any]:
             query_text = brand_name or campaign.brand_id
 
             if redis_client:
+                # Determine priority tier from subscription plan
+                priority = getattr(plan, "scan_queue_priority", 1) if plan else 1
+                tier = get_priority_tier(priority)
+                tier_queues = PRIORITY_QUEUE_MAP.get(tier, PRIORITY_QUEUE_MAP["starter"])
+
                 for platform_name in platforms:
-                    queue_name = QUEUE_MAP.get(platform_name.lower())
+                    queue_name = tier_queues.get(platform_name.lower())
                     if not queue_name:
                         logger.warning(f"Unknown platform '{platform_name}', skipping queue push.")
                         continue
@@ -291,7 +320,11 @@ def dispatch_due_campaigns() -> dict[str, Any]:
                             "tenant_id": str(campaign.tenant_id) if campaign.tenant_id else None,
                             "dispatched_at": now.isoformat(),
                         }
-                        redis_client.rpush(queue_name, json.dumps(ticket))
+                        # Enterprise uses lpush (front of queue = processed first), others use rpush
+                        if tier == "enterprise":
+                            redis_client.lpush(queue_name, json.dumps(ticket))
+                        else:
+                            redis_client.rpush(queue_name, json.dumps(ticket))
                         queued_count += 1
             else:
                 logger.error(f"Cannot dispatch tasks for job {job_run_id_str}: Redis client is not connected!")

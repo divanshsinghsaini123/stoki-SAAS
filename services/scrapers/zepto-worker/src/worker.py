@@ -36,7 +36,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("zepto-worker")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-QUEUE_NAME = "zepto_tasks"
+PRIORITY_QUEUES = [
+    "enterprise_zepto_tasks",
+    "growth_zepto_tasks",
+    "starter_zepto_tasks",
+]
 
 
 def save_to_database(snapshots_data: list[dict]):
@@ -154,12 +158,12 @@ def start_worker():
     r = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=None)
     headless = os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes")
     scraper = ZeptoScraper(headless=headless)
-    logger.info(f"Zepto worker running. Listening on queue '{QUEUE_NAME}'...")
+    logger.info(f"Zepto worker running. Listening on queues {PRIORITY_QUEUES} (enterprise first)...")
 
     try:
         while True:
             try:
-                task = r.blpop(QUEUE_NAME, timeout=5)
+                task = r.blpop(PRIORITY_QUEUES, timeout=5)
                 if not task:
                     continue
 

@@ -34,12 +34,33 @@ except ImportError:
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns & Scheduling"])
 
-QUEUE_MAP = {
-    "blinkit": "blinkit_tasks",
-    "zepto": "zepto_tasks",
-    "instamart": "instamart_tasks",
-    "bigbasket": "bigbasket_tasks",
+PRIORITY_QUEUE_MAP = {
+    "enterprise": {
+        "blinkit": "enterprise_blinkit_tasks",
+        "zepto": "enterprise_zepto_tasks",
+        "instamart": "enterprise_instamart_tasks",
+        "bigbasket": "enterprise_bigbasket_tasks",
+    },
+    "growth": {
+        "blinkit": "growth_blinkit_tasks",
+        "zepto": "growth_zepto_tasks",
+        "instamart": "growth_instamart_tasks",
+        "bigbasket": "growth_bigbasket_tasks",
+    },
+    "starter": {
+        "blinkit": "starter_blinkit_tasks",
+        "zepto": "starter_zepto_tasks",
+        "instamart": "starter_instamart_tasks",
+        "bigbasket": "starter_bigbasket_tasks",
+    },
 }
+
+def get_priority_tier(scan_queue_priority: int) -> str:
+    if scan_queue_priority >= 3:
+        return "enterprise"
+    elif scan_queue_priority == 2:
+        return "growth"
+    return "starter"
 
 
 @router.get("", response_model=CampaignListResponse)
@@ -305,6 +326,18 @@ def trigger_scan(
     db.commit()
     db.refresh(job_run)
 
+    # Determine priority tier from subscription plan
+    sub, plan = validate_tenant_subscription(
+        db=db,
+        tenant_id=str(campaign.tenant_id) if campaign.tenant_id else None,
+        brand_id=campaign.brand_id,
+        consume_scan=False,  # Already consumed above, just fetch plan here
+        is_new_brand=False,
+    ) if campaign.tenant_id else (None, None)
+    priority = getattr(plan, "scan_queue_priority", 1) if plan else 1
+    tier = get_priority_tier(priority)
+    tier_queues = PRIORITY_QUEUE_MAP.get(tier, PRIORITY_QUEUE_MAP["starter"])
+
     # Dispatch tasks to platform Redis queues
     platforms = campaign.platforms or ["blinkit", "zepto", "instamart", "bigbasket"]
     pincodes = campaign.pincodes or ["400001", "400009"]
@@ -312,7 +345,7 @@ def trigger_scan(
     dispatched_platforms = []
 
     for platform_name in platforms:
-        queue_name = QUEUE_MAP.get(platform_name.lower())
+        queue_name = tier_queues.get(platform_name.lower())
         if not queue_name:
             continue
 
@@ -330,7 +363,11 @@ def trigger_scan(
                 "tenant_id": str(campaign.tenant_id) if campaign.tenant_id else None,
                 "dispatched_at": datetime.utcnow().isoformat(),
             }
-            redis_client.rpush(queue_name, json.dumps(ticket))
+            # Enterprise = lpush (front of queue), others = rpush (back)
+            if tier == "enterprise":
+                redis_client.lpush(queue_name, json.dumps(ticket))
+            else:
+                redis_client.rpush(queue_name, json.dumps(ticket))
             queued_count += 1
 
     return TriggerScanResponse(

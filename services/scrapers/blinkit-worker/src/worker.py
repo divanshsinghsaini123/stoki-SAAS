@@ -36,7 +36,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("blinkit-worker")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-QUEUE_NAME = "blinkit_tasks"
+# Priority queue order: enterprise first (highest), then growth, then starter
+# blpop checks left-to-right, picks first non-empty queue — ensures FIFO within each tier
+PRIORITY_QUEUES = [
+    "enterprise_blinkit_tasks",
+    "growth_blinkit_tasks",
+    "starter_blinkit_tasks",
+]
 
 
 def save_to_database(snapshots_data: list[dict]):
@@ -158,12 +164,12 @@ def start_worker():
     r = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=None)
     headless = os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes")
     scraper = BlinkitScraper(headless=headless)
-    logger.info(f"Blinkit worker running. Listening on queue '{QUEUE_NAME}'...")
+    logger.info(f"Blinkit worker running. Listening on queues {PRIORITY_QUEUES} (enterprise first)...")
 
     try:
         while True:
             try:
-                task = r.blpop(QUEUE_NAME, timeout=5)
+                task = r.blpop(PRIORITY_QUEUES, timeout=5)
                 if not task:
                     continue
 

@@ -92,6 +92,7 @@ class SubscriptionPlan(Base):
     included_extra_scans = Column(Integer, nullable=False, default=0)  # One-time bonus/pool scans bundled with this plan
     max_daily_hard_cap = Column(Integer, nullable=False, default=0)  # Universal safety ceiling: Daily quota + extra scans cannot exceed this in 1 day
     max_brands = Column(Integer, nullable=False, default=1)
+    scan_queue_priority = Column(Integer, nullable=False, default=1)  # 1=Starter, 2=Growth, 3=Enterprise — controls Redis queue tier (lpush vs rpush)
 
     allowed_platforms = Column(
         JSONB,

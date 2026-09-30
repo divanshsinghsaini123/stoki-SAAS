@@ -36,7 +36,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("instamart-worker")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-QUEUE_NAME = "instamart_tasks"
+PRIORITY_QUEUES = [
+    "enterprise_instamart_tasks",
+    "growth_instamart_tasks",
+    "starter_instamart_tasks",
+]
 
 
 def save_to_database(snapshots_data: list[dict]):
@@ -150,12 +154,12 @@ def start_worker():
     r = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=None)
     headless = os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes")
     scraper = InstamartScraper(headless=headless)
-    logger.info(f"Instamart worker running. Listening on queue '{QUEUE_NAME}'...")
+    logger.info(f"Instamart worker running. Listening on queues {PRIORITY_QUEUES} (enterprise first)...")
 
     try:
         while True:
             try:
-                task = r.blpop(QUEUE_NAME, timeout=5)
+                task = r.blpop(PRIORITY_QUEUES, timeout=5)
                 if not task:
                     continue
 
