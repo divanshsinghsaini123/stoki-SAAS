@@ -360,7 +360,7 @@ function PlatformCard({
     <div
       className="relative rounded-xl bg-slate-50/90 dark:bg-zinc-950/70 border border-slate-200/90 dark:border-zinc-800/90 p-3 flex flex-col justify-between h-[114px] overflow-hidden shadow-2xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-200"
     >
-      {/* Top Row: Big Platform Logo + Name & Store ID + Live Status Dot */}
+      {/* Top Row: Big Platform Logo + Name & Store ID + In Stock/Out of Stock badge (No dot) */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <PlatformLogo platform={platform.id} className="w-7 h-7 rounded-lg shrink-0 shadow-xs" />
@@ -373,46 +373,44 @@ function PlatformCard({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span
-            className={cn(
-              "w-2 h-2 rounded-full shrink-0",
-              isInStock ? "bg-emerald-500" : "bg-rose-500"
-            )}
-          />
-        </div>
-      </div>
 
-      {/* Bottom Row: Stock Badge + Price */}
-      <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-slate-200/70 dark:border-zinc-800/70">
+        {/* In Stock / Out of Stock status placed in top right */}
         <span
           className={cn(
-            "text-[9px] font-bold px-1.5 py-0.5 rounded transition-colors duration-200 shrink-0",
+            "text-[9px] font-bold px-2 py-0.5 rounded-md transition-colors duration-200 shrink-0 font-mono tracking-tight",
             isInStock
-              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-              : "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20"
+              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
+              : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25"
           )}
         >
           {isInStock ? `IN STOCK (${maxQty})` : "OUT OF STOCK"}
         </span>
+      </div>
 
-        <div className="flex items-baseline gap-1">
+      {/* Bottom Row: Live sync status on left, Bigger price in right part */}
+      <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-slate-200/70 dark:border-zinc-800/70">
+        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
+          {isInStock ? "Live Store Sync" : "Restocking"}
+        </span>
+
+        {/* Bigger Price in right part */}
+        <div className="flex items-baseline gap-1.5">
           {hasPrice ? (
             <>
-              <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100 font-mono">
+              <span className="text-base font-extrabold tabular-nums text-zinc-900 dark:text-zinc-100 font-mono">
                 ₹{price[0]}
               </span>
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 line-through tabular-nums font-mono">
+              <span className="text-xs text-zinc-400 dark:text-zinc-500 line-through tabular-nums font-mono">
                 ₹{price[1]}
               </span>
               {price[1] && price[0] && price[1] > price[0] && (
-                <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold font-mono">
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold font-mono">
                   {Math.round(((price[1] - price[0]) / price[1]) * 100)}% off
                 </span>
               )}
             </>
           ) : (
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+            <span className="text-xs font-semibold text-rose-500 dark:text-rose-400 font-mono">
               Unavailable
             </span>
           )}
