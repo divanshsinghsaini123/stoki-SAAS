@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-geist-sans), "Geist Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", monospace;
+}
+
 /* ============================================================
    STOKI DESIGN SYSTEM — CSS CUSTOM PROPERTIES
    Persona: Linear.app meets Stripe & Vercel for Q-Commerce
@@ -92,20 +99,37 @@
   body {
     background-color: var(--background);
     color: var(--text-primary);
-    font-family: var(--font-geist-sans), 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-geist-sans), "Geist Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   /* Monospace: Pincodes, SKUs, prices, crons, timestamps */
-  .mono {
-    font-family: var(--font-geist-mono), 'JetBrains Mono', monospace;
+  .mono,
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-geist-mono), "Geist Mono", monospace;
   }
 
   /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 9999px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-subtle);
+  }
 }
 
 /* ============================================================
@@ -134,6 +158,7 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
 .light .gradient-text {
   background: linear-gradient(135deg, #0F172A 30%, #059669 100%);
   -webkit-background-clip: text;
@@ -150,6 +175,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 24px rgba(255, 255, 255, 0.12);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .btn-primary:hover {
   background-color: #F4F4F5;
   color: #000000;
@@ -163,6 +189,7 @@
   border: 1px solid #0F172A;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2), 0 4px 12px rgba(15, 23, 42, 0.15);
 }
+
 .light .btn-primary:hover {
   background-color: #1E293B;
   color: #FFFFFF;
@@ -176,6 +203,7 @@
   border: 1px solid var(--border);
   transition: all 0.2s ease;
 }
+
 .btn-ghost:hover {
   border-color: var(--border-strong);
   color: var(--text-primary);
@@ -188,28 +216,40 @@
   color: #D4A00A;
   border: 1px solid rgba(248, 203, 70, 0.2);
 }
-.dark .badge-blinkit { color: var(--blinkit); }
+
+.dark .badge-blinkit {
+  color: var(--blinkit);
+}
 
 .badge-zepto {
   background: var(--zepto-bg);
   color: #7C3AED;
   border: 1px solid rgba(139, 92, 246, 0.2);
 }
-.dark .badge-zepto { color: var(--zepto); }
+
+.dark .badge-zepto {
+  color: var(--zepto);
+}
 
 .badge-instamart {
   background: var(--instamart-bg);
   color: #D4600A;
   border: 1px solid rgba(252, 128, 25, 0.2);
 }
-.dark .badge-instamart { color: var(--instamart); }
+
+.dark .badge-instamart {
+  color: var(--instamart);
+}
 
 .badge-bigbasket {
   background: var(--bigbasket-bg);
   color: #4D7A10;
   border: 1px solid rgba(132, 194, 37, 0.2);
 }
-.dark .badge-bigbasket { color: var(--bigbasket); }
+
+.dark .badge-bigbasket {
+  color: var(--bigbasket);
+}
 
 /* Stock Status Indicators */
 .badge-in-stock {
@@ -217,41 +257,94 @@
   color: var(--in-stock);
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
+
 .badge-oos {
   background: var(--oos-bg);
   color: var(--oos);
   border: 1px solid rgba(244, 63, 94, 0.2);
 }
 
-/* Pulse Dots */
+/* Status Indicator Dots (Calm, subtle, non-distracting) */
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.65;
+    transform: scale(0.92);
+  }
 }
-.pulse-green, .pulse-emerald { animation: pulse-dot 2s ease-in-out infinite; background: var(--in-stock); }
-.pulse-red { animation: pulse-dot 1.2s ease-in-out infinite; background: var(--oos); }
-.pulse-amber { animation: pulse-dot 2s ease-in-out infinite; background: var(--amber); }
-.pulse-indigo { animation: pulse-dot 2.5s ease-in-out infinite; background: var(--accent); }
+
+.pulse-green,
+.pulse-emerald {
+  animation: pulse-dot 3.5s ease-in-out infinite;
+  background: var(--in-stock);
+}
+
+.pulse-red {
+  animation: pulse-dot 2.5s ease-in-out infinite;
+  background: var(--oos);
+}
+
+.pulse-amber {
+  animation: pulse-dot 3.5s ease-in-out infinite;
+  background: var(--amber);
+}
+
+.pulse-indigo {
+  animation: pulse-dot 3.5s ease-in-out infinite;
+  background: var(--accent);
+}
 
 /* Marquee */
 @keyframes marquee-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
+
 @keyframes marquee-right {
-  from { transform: translateX(-50%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-50%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
-.animate-marquee-left { animation: marquee-left 28s linear infinite; }
-.animate-marquee-right { animation: marquee-right 28s linear infinite; }
+
+.animate-marquee-left {
+  animation: marquee-left 28s linear infinite;
+}
+
+.animate-marquee-right {
+  animation: marquee-right 28s linear infinite;
+}
+
 .animate-marquee-left:hover,
-.animate-marquee-right:hover { animation-play-state: paused; }
+.animate-marquee-right:hover {
+  animation-play-state: paused;
+}
 
 /* Shimmer Skeleton */
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+
+  100% {
+    background-position: 400px 0;
+  }
 }
+
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
   background-size: 800px 100%;
@@ -261,10 +354,20 @@
 
 /* Glow Border (for Pro plan card) */
 @keyframes glow-border {
-  0%, 100% { box-shadow: 0 0 12px var(--accent-glow), 0 0 24px var(--accent-glow); }
-  50% { box-shadow: 0 0 24px var(--accent-glow), 0 0 48px var(--accent-glow); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 12px var(--accent-glow), 0 0 24px var(--accent-glow);
+  }
+
+  50% {
+    box-shadow: 0 0 24px var(--accent-glow), 0 0 48px var(--accent-glow);
+  }
 }
-.glow-border { animation: glow-border 3s ease-in-out infinite; }
+
+.glow-border {
+  animation: glow-border 3s ease-in-out infinite;
+}
 
 /* Noise Texture Overlay (for dark hero sections) */
 .noise::before {

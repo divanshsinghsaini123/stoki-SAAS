@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Star, ShieldCheck, Sparkles } from "lucide-react";
+import { Star, ShieldCheck, Sparkles, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Review {
@@ -14,6 +14,7 @@ interface Review {
   rating: number;
   avatarColor: string;
   initials: string;
+  tag?: string;
 }
 
 const BRAND_LOGOS = [
@@ -40,6 +41,7 @@ const FALLBACK_REVIEWS_ROW_1: Review[] = [
     rating: 5,
     avatarColor: "#10B981",
     initials: "AM",
+    tag: "Beverages",
   },
   {
     id: "rev-2",
@@ -51,6 +53,7 @@ const FALLBACK_REVIEWS_ROW_1: Review[] = [
     rating: 5,
     avatarColor: "#F59E0B",
     initials: "PS",
+    tag: "Snacks",
   },
   {
     id: "rev-3",
@@ -62,6 +65,7 @@ const FALLBACK_REVIEWS_ROW_1: Review[] = [
     rating: 5,
     avatarColor: "#38BDF8",
     initials: "VS",
+    tag: "D2C",
   },
   {
     id: "rev-4",
@@ -73,6 +77,7 @@ const FALLBACK_REVIEWS_ROW_1: Review[] = [
     rating: 5,
     avatarColor: "#8B5CF6",
     initials: "RD",
+    tag: "Ready-To-Drink",
   },
 ];
 
@@ -87,6 +92,7 @@ const FALLBACK_REVIEWS_ROW_2: Review[] = [
     rating: 5,
     avatarColor: "#EC4899",
     initials: "AR",
+    tag: "Organic Foods",
   },
   {
     id: "rev-6",
@@ -98,6 +104,7 @@ const FALLBACK_REVIEWS_ROW_2: Review[] = [
     rating: 5,
     avatarColor: "#10B981",
     initials: "KN",
+    tag: "Enterprise",
   },
   {
     id: "rev-7",
@@ -109,6 +116,7 @@ const FALLBACK_REVIEWS_ROW_2: Review[] = [
     rating: 5,
     avatarColor: "#F97316",
     initials: "TK",
+    tag: "Packaged Juices",
   },
   {
     id: "rev-8",
@@ -120,47 +128,58 @@ const FALLBACK_REVIEWS_ROW_2: Review[] = [
     rating: 5,
     avatarColor: "#6366F1",
     initials: "SJ",
+    tag: "Health & Wellness",
   },
 ];
 
 function ReviewCard({ review }: { review: Review }) {
   return (
-    <div className="w-[340px] shrink-0 p-5 rounded-2xl glass border border-zinc-800/80 hover:border-emerald-500/30 transition-all duration-200 flex flex-col justify-between shadow-lg">
+    <div className="w-[360px] shrink-0 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-md hover:border-emerald-500/40 transition-all duration-200 flex flex-col justify-between">
       <div>
-        {/* Rating Stars */}
-        <div className="flex items-center gap-1 mb-3">
-          {Array.from({ length: review.rating }).map((_, i) => (
-            <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          ))}
-          <span className="ml-2 text-[10px] font-mono text-emerald-400 font-semibold flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3" />
-            Verified Brand
-          </span>
+        {/* Top Header: Rating Stars + Category Tag */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1">
+            {Array.from({ length: review.rating }).map((_, i) => (
+              <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            ))}
+            <span className="ml-1.5 text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              Verified Brand
+            </span>
+          </div>
+
+          {review.tag && (
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700">
+              {review.tag}
+            </span>
+          )}
         </div>
 
-        {/* Quote */}
-        <p className="text-xs md:text-sm text-zinc-200 leading-relaxed font-normal">
+        {/* Quote - High contrast in both Light & Dark */}
+        <p className="text-xs md:text-sm text-slate-700 dark:text-zinc-200 leading-relaxed font-normal">
           &ldquo;{review.quote}&rdquo;
         </p>
       </div>
 
       {/* Author Footer */}
-      <div className="flex items-center gap-3 pt-4 mt-4 border-t border-[var(--border)]">
+      <div className="flex items-center gap-3 pt-3.5 mt-4 border-t border-slate-100 dark:border-zinc-800">
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-inner"
+          className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs"
           style={{ background: review.avatarColor }}
         >
           {review.initials}
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h5 className="font-semibold text-xs text-zinc-100 truncate">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-1">
+            <h5 className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">
               {review.name}
             </h5>
-            <span className="text-[10px] text-zinc-500 font-mono">{review.handle}</span>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono shrink-0">
+              {review.handle}
+            </span>
           </div>
-          <p className="text-[10px] text-zinc-400 truncate">
-            {review.designation} · <strong className="text-zinc-300 font-medium">{review.company}</strong>
+          <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">
+            {review.designation} · <strong className="text-slate-800 dark:text-zinc-200 font-semibold">{review.company}</strong>
           </p>
         </div>
       </div>
@@ -188,6 +207,7 @@ export function ReviewsMarqueeSection() {
             rating: d.rating || 5,
             avatarColor: "#10B981",
             initials: (d.manager_name || "BM").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
+            tag: d.category || "FMCG",
           }));
           const half = Math.ceil(formatted.length / 2);
           setRow1(formatted.slice(0, half));
@@ -200,29 +220,29 @@ export function ReviewsMarqueeSection() {
   }, []);
 
   return (
-    <section className="relative w-full py-20 overflow-hidden border-y border-[var(--border)] bg-[var(--background-secondary)]/30">
+    <section className="relative w-full py-20 overflow-hidden border-y border-slate-200/80 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/40">
       {/* Edge gradient fade masks */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-[var(--background)] to-transparent z-10" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-[var(--background)] to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent dark:from-zinc-950 dark:via-zinc-950/80 dark:to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent dark:from-zinc-950 dark:via-zinc-950/80 dark:to-transparent z-10" />
 
       <div className="max-w-6xl mx-auto px-6 mb-10 text-center">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3">
-          <Sparkles className="w-3.5 h-3.5" />
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 mb-3">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           Trusted by Q-Commerce Leaders
         </span>
-        <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+        <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
           Loved by brand managers tracking{" "}
           <span className="gradient-text">100,000+ dark stores daily.</span>
         </h3>
       </div>
 
       {/* Brand Logos Strip */}
-      <div className="relative w-full overflow-hidden mb-10 py-3 border-y border-[var(--border)] bg-black/20">
+      <div className="relative w-full overflow-hidden mb-10 py-3.5 border-y border-slate-200/80 dark:border-zinc-800 bg-slate-100/60 dark:bg-black/30">
         <div className="flex w-max gap-12 animate-marquee-left whitespace-nowrap">
           {[...BRAND_LOGOS, ...BRAND_LOGOS].map((brand, i) => (
             <span
               key={`${brand}-${i}`}
-              className="text-xs font-mono font-bold tracking-widest text-zinc-400 hover:text-zinc-200 transition-colors uppercase cursor-default"
+              className="text-xs font-mono font-bold tracking-widest text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors uppercase cursor-default"
             >
               {brand}
             </span>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Zap, Globe, MessageCircle, Briefcase } from "lucide-react";
+import { PlatformLogo } from "@/components/ui/platform-logos";
 
 const FOOTER_LINKS = {
   Product: [
@@ -48,12 +49,12 @@ export function Footer() {
             <p className="text-sm text-[var(--text-muted)] leading-relaxed max-w-xs mb-5">
               Hyperlocal Q-Commerce stock intelligence for FMCG brands. Track every SKU across every dark store in real time.
             </p>
-            {/* Platform coverage dots */}
+            {/* Platform coverage logos */}
             <div className="flex items-center gap-3">
-              {PLATFORM_DOTS.map((p) => (
-                <div key={p.label} className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-                  <span className="text-xs text-[var(--text-subtle)]">{p.label}</span>
+              {["blinkit", "zepto", "instamart", "bigbasket"].map((platform) => (
+                <div key={platform} className="flex items-center gap-1.5">
+                  <PlatformLogo platform={platform} className="w-4 h-4 rounded shrink-0" />
+                  <span className="text-xs text-[var(--text-subtle)] capitalize">{platform === "bigbasket" ? "BigBasket" : platform}</span>
                 </div>
               ))}
             </div>

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { MapPin, BellRing, TrendingUp, CalendarClock, ArrowUpRight, Cpu, Layers, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PlatformLogo } from "@/components/ui/platform-logos";
 
 // ─── Data: Real Pincode Intelligence Matrix ──────────────────────────────────
 
@@ -42,20 +43,20 @@ function PincodeIntelligenceGrid() {
               "p-3 rounded-xl border flex flex-col justify-between transition-all",
               isOptimal && "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
               isWarning && "bg-amber-500/10 border-amber-500/25 text-amber-400",
-              isCritical && "bg-rose-500/10 border-rose-500/25 text-rose-400"
+              isCritical && "bg-rose-500/10 border-rose-500/25 text-rose-500 dark:text-rose-400"
             )}
           >
             {/* Top row: Pincode + Dot */}
             <div className="flex items-center justify-between gap-1 mb-1.5">
-              <span className="font-mono text-xs font-bold tracking-tight text-zinc-100">
+              <span className="font-mono text-xs font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {cell.code}
               </span>
               <span
                 className={cn(
                   "w-1.5 h-1.5 rounded-full shrink-0",
-                  isOptimal && "pulse-emerald",
-                  isWarning && "pulse-amber",
-                  isCritical && "pulse-red"
+                  isOptimal && "bg-emerald-500",
+                  isWarning && "bg-amber-500",
+                  isCritical && "bg-rose-500"
                 )}
               />
             </div>
@@ -71,7 +72,7 @@ function PincodeIntelligenceGrid() {
             </div>
 
             {/* Bottom: Locality & POD ID */}
-            <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1 border-t border-white/5 font-mono">
+            <div className="flex items-center justify-between text-[10px] text-zinc-600 dark:text-zinc-400 pt-1 border-t border-zinc-200/60 dark:border-white/5 font-mono">
               <span className="truncate">{cell.city}</span>
               <span className="text-zinc-500 font-medium shrink-0 ml-1">{cell.pod}</span>
             </div>
@@ -101,15 +102,16 @@ function AlertVisual() {
           transition={{ delay: i * 0.15 + 0.3 }}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20"
         >
-          <BellRing className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+          <PlatformLogo platform={alert.platform} className="w-4 h-4 rounded shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold text-rose-300 truncate">
+            <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300 truncate">
               OOS Spike — {alert.sku}
             </p>
-            <p className="text-[10px] text-zinc-400 font-mono">
+            <p className="text-[10px] text-zinc-600 dark:text-zinc-400 font-mono">
               PIN {alert.pin} · {alert.platform}
             </p>
           </div>
+          <BellRing className="w-3.5 h-3.5 text-rose-500 shrink-0" />
         </motion.div>
       ))}
     </div>
@@ -130,8 +132,11 @@ function SparklineVisual() {
     <div className="flex flex-col gap-2 mt-3">
       {platforms.map((p) => (
         <div key={p.name} className="flex items-center gap-2">
-          <span className="text-[10px] text-zinc-400 w-16 shrink-0 font-medium">{p.name}</span>
-          <div className="flex-1 h-1.5 rounded-full bg-zinc-800">
+          <div className="flex items-center gap-1.5 w-20 shrink-0">
+            <PlatformLogo platform={p.name} className="w-3.5 h-3.5 rounded shrink-0" />
+            <span className="text-[10px] text-zinc-600 dark:text-zinc-400 font-semibold truncate">{p.name}</span>
+          </div>
+          <div className="flex-1 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800">
             <motion.div
               className="h-full rounded-full"
               style={{ background: p.color }}
@@ -140,7 +145,7 @@ function SparklineVisual() {
               transition={{ duration: 0.8, delay: 0.4 }}
             />
           </div>
-          <span className="text-[10px] font-mono text-zinc-200 tabular-nums w-10 text-right font-bold">
+          <span className="text-[10px] font-mono text-zinc-900 dark:text-zinc-200 tabular-nums w-10 text-right font-bold">
             ₹{p.price}
           </span>
         </div>
@@ -171,7 +176,7 @@ function CampaignTimelineVisual() {
     <div className="flex flex-col gap-1.5 mt-3">
       {times.map((t, idx) => (
         <div key={t} className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-zinc-400 w-16 font-medium">{t}</span>
+          <span className="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 w-16 font-medium">{t}</span>
           <div className="flex gap-1.5">
             {platforms.map((p, j) => (
               <motion.div
@@ -233,7 +238,7 @@ function LiveQueueTelemetryPanel() {
             className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-black/40 border border-zinc-800/50 text-[10px] font-mono"
           >
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: q.color }} />
+              <PlatformLogo platform={q.platform} className="w-3.5 h-3.5 rounded shrink-0" />
               <span className="text-zinc-300 font-semibold truncate">{q.queueName}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -246,8 +251,8 @@ function LiveQueueTelemetryPanel() {
       </div>
 
       <div className="flex items-center justify-between pt-1 border-t border-zinc-800/60 text-[9px] font-mono text-zinc-400">
-        <span className="flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-emerald-400 pulse-emerald" />
+        <span className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           Throughput: 1,420 scans/min
         </span>
         <span className="text-emerald-400 font-semibold">Priority: Enterprise First</span>
@@ -370,7 +375,7 @@ export function BentoSection() {
               <p className="text-sm text-[var(--text-muted)] leading-relaxed">
                 Schedule recurring scans with cron expressions. Set it once, get stock intelligence forever with multi-pincode fan-out across all 4 platforms.
               </p>
-              
+
               <div className="flex items-center gap-2">
                 <code className="text-xs font-mono px-2.5 py-1 rounded-lg bg-[var(--background)] border border-[var(--border)] text-emerald-400 font-bold w-fit">
                   0 9,18 * * *

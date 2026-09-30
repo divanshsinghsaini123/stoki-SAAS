@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, ChevronRight, ArrowRight, Zap, ShieldCheck, Bell, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { PlatformLogo, BlinkitIcon, ZeptoIcon, InstamartIcon, BigBasketIcon } from "@/components/ui/platform-logos";
 
 // ─── Demo Data & Product Renders ─────────────────────────────────────────────
 
@@ -227,62 +228,63 @@ function PlatformCard({
 
   return (
     <div
-      className="relative rounded-xl glass border p-3 flex flex-col justify-between h-[142px] overflow-hidden transition-all duration-200"
+      className="relative rounded-xl bg-slate-50/90 dark:bg-zinc-950/70 border border-slate-200/90 dark:border-zinc-800/90 p-3 flex flex-col justify-between h-[142px] overflow-hidden shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-200"
     >
       <div>
-        {/* Platform badge */}
+        {/* Platform logo + name */}
         <div className="flex items-center justify-between mb-1.5">
-          <span
-            className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider", platform.bgClass)}
-          >
-            {platform.name}
-          </span>
-          <div className="flex items-center gap-1">
-            <span
-              className={cn(
-                "w-1.5 h-1.5 rounded-full transition-colors duration-200",
-                isInStock ? "pulse-emerald" : "pulse-red"
-              )}
-            />
+          <div className="flex items-center gap-1.5">
+            <PlatformLogo platform={platform.id} className="w-4 h-4 rounded shrink-0" />
+            <span className="text-xs font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {platform.name}
+            </span>
           </div>
+          <span
+            className={cn(
+              "w-2 h-2 rounded-full",
+              isInStock ? "bg-emerald-500" : "bg-rose-500"
+            )}
+          />
         </div>
 
-        {/* Dark Store ID - Brightened contrast for readability */}
-        <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-400 font-medium tracking-wider">
+        {/* Dark Store ID */}
+        <p className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold tracking-wider">
           {platform.stores[pincodeIdx]}
         </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {/* Stock Status */}
+        {/* Stock Status Badge */}
         <div
           className={cn(
-            "text-[11px] font-semibold px-2 py-0.5 rounded-lg h-6 flex items-center transition-colors duration-200",
-            isInStock ? "badge-in-stock" : "badge-oos"
+            "text-[10px] font-bold px-2 py-0.5 rounded-md h-6 flex items-center transition-colors duration-200",
+            isInStock
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+              : "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20"
           )}
         >
           {isInStock
-            ? `IN STOCK · Max ${platform.maxQty[pincodeIdx]}`
+            ? `IN STOCK · Max ${platform.maxQty[pincodeIdx]} units`
             : "OUT OF STOCK"}
         </div>
 
-        {/* Price */}
+        {/* Price & Discount */}
         <div className="h-6 flex items-baseline gap-1.5">
           {hasPrice ? (
             <>
-              <span className="text-sm font-bold tabular-nums text-[var(--text-primary)]">
+              <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100 font-mono">
                 ₹{price[0]}
               </span>
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-400 line-through tabular-nums font-medium">
+              <span className="text-[11px] text-zinc-400 dark:text-zinc-500 line-through tabular-nums font-mono">
                 ₹{price[1]}
               </span>
-              <span className="text-[10px] text-emerald-400 font-semibold">
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold font-mono">
                 {Math.round(((price[1]! - price[0]!) / price[1]!) * 100)}% off
               </span>
             </>
           ) : (
-            <span className="text-[11px] text-zinc-400 dark:text-zinc-400 font-medium">
-              Price unavailable
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
+              Temporarily unavailable
             </span>
           )}
         </div>
@@ -312,26 +314,26 @@ export function ScannerWidget() {
   const activeProduct = SKUS[activeSku];
 
   return (
-    <div className="relative rounded-2xl glass-strong border p-5 w-full max-w-lg h-[565px] flex flex-col justify-between overflow-hidden">
+    <div className="relative rounded-2xl bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 p-5 w-full max-w-lg h-[565px] flex flex-col justify-between overflow-hidden shadow-xl dark:shadow-2xl">
       {/* Glow orb behind widget - Emerald/Amber */}
-      <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+      <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full pulse-emerald" />
-          <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-            Live Scanner
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
+            Live SKU Scanner
           </span>
         </div>
-        <div className="ml-auto flex items-center gap-1 text-[10px] font-mono text-zinc-400 font-medium">
-          <Zap className="w-3 h-3 text-emerald-400" />
-          REAL-TIME
+        <div className="ml-auto flex items-center gap-1 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 font-medium">
+          <Zap className="w-3 h-3 text-emerald-500" />
+          Active Feed
         </div>
       </div>
 
-      {/* SKU Tabs - Emojis removed, clean brand pills */}
-      <div className="flex gap-1.5 mb-3 bg-[var(--background)] rounded-xl p-1 border border-[var(--border)]">
+      {/* SKU Tabs */}
+      <div className="flex gap-1.5 mb-3 bg-slate-100 dark:bg-zinc-950/80 rounded-xl p-1 border border-slate-200/80 dark:border-zinc-800">
         {SKUS.map((sku, i) => (
           <button
             key={sku.id}
@@ -339,8 +341,8 @@ export function ScannerWidget() {
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all duration-200",
               activeSku === i
-                ? "bg-white text-zinc-950 dark:bg-zinc-100 dark:text-zinc-950 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200 dark:text-zinc-400 dark:hover:text-zinc-200"
+                ? "bg-white text-zinc-950 dark:bg-zinc-800 dark:text-white shadow-xs border border-slate-200 dark:border-transparent"
+                : "text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-200"
             )}
           >
             <span
@@ -353,35 +355,35 @@ export function ScannerWidget() {
       </div>
 
       {/* Selected Product Showcase Banner - Fixed Height */}
-      <div className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-zinc-900/80 border border-zinc-800/90 shadow-sm h-[68px] overflow-hidden">
-        <div className="w-11 h-13 shrink-0 rounded-lg flex items-center justify-center bg-black/50 border border-zinc-800/80 shadow-inner">
+      <div className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-slate-50 dark:bg-zinc-950/60 border border-slate-200/90 dark:border-zinc-800/90 shadow-xs h-[68px] overflow-hidden">
+        <div className="w-11 h-13 shrink-0 rounded-lg flex items-center justify-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs">
           <ProductThumbnail skuId={activeProduct.id} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h4 className="font-semibold text-xs text-zinc-100 truncate">
+            <h4 className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">
               {activeProduct.name}
             </h4>
-            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold shrink-0">
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold shrink-0">
               {activeProduct.skuCode}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-zinc-400">
-            <span className="font-mono text-zinc-300 font-medium">{activeProduct.packSize}</span>
+          <div className="flex items-center gap-2 text-[10px] text-zinc-600 dark:text-zinc-400">
+            <span className="font-mono text-zinc-800 dark:text-zinc-300 font-medium">{activeProduct.packSize}</span>
             <span>•</span>
-            <span>MRP <strong className="font-mono text-zinc-200 font-bold">{activeProduct.mrp}</strong></span>
+            <span>MRP <strong className="font-mono text-zinc-900 dark:text-zinc-200 font-bold">{activeProduct.mrp}</strong></span>
             <span>•</span>
-            <span className="text-emerald-400 font-medium flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-emerald-400" />
-              4 Platforms Live
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-emerald-500" />
+              4 Platforms
             </span>
           </div>
         </div>
       </div>
 
       {/* Pincode Roller - Fixed Height */}
-      <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] h-[50px] overflow-hidden">
-        <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
+      <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-slate-50 dark:bg-zinc-950/60 border border-slate-200/90 dark:border-zinc-800/90 h-[50px] overflow-hidden">
+        <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
         <div className="flex-1 overflow-hidden h-6 flex items-center">
           {!isTyping ? (
             <AnimatePresence mode="wait">
@@ -393,10 +395,10 @@ export function ScannerWidget() {
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="flex items-center gap-2 h-6"
               >
-                <span className="font-mono text-sm font-bold text-[var(--text-primary)]">
+                <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100">
                   {PINCODES[pinIdx].code}
                 </span>
-                <span className="text-xs text-zinc-300 dark:text-zinc-300 font-medium truncate">
+                <span className="text-xs text-zinc-600 dark:text-zinc-400 font-medium truncate">
                   {PINCODES[pinIdx].city}
                 </span>
               </motion.div>
@@ -407,7 +409,7 @@ export function ScannerWidget() {
               value={manualPin}
               onChange={(e) => setManualPin(e.target.value.replace(/\D/, "").slice(0, 6))}
               placeholder="Enter 6-digit pincode..."
-              className="w-full bg-transparent font-mono text-sm text-[var(--text-primary)] outline-none placeholder:text-zinc-500"
+              className="w-full bg-transparent font-mono text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400"
             />
           )}
         </div>
@@ -416,7 +418,7 @@ export function ScannerWidget() {
             setIsTyping(!isTyping);
             if (isTyping) setManualPin("");
           }}
-          className="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold hover:underline shrink-0"
+          className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline font-semibold shrink-0"
         >
           {isTyping ? "Auto" : "Edit"}
         </button>
@@ -435,7 +437,7 @@ export function ScannerWidget() {
       </div>
 
       {/* Footer note */}
-      <p className="text-center text-[10px] text-zinc-400 dark:text-zinc-400 font-medium mt-3">
+      <p className="text-center text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-3">
         Live telemetry snapshot · Connect your brand catalog for real-time alerts
       </p>
     </div>
@@ -453,26 +455,38 @@ const STATS = [
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center pt-28 pb-16 overflow-hidden noise">
-      {/* Background glows - Emerald & Amber tones, NO purple */}
+    <section className="relative min-h-[calc(100vh-80px)] flex items-center pt-32 pb-20 overflow-hidden noise">
+      {/* Background ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-emerald-500/10 opacity-[0.06] blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-amber-500/10 opacity-[0.05] blur-[100px] pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-6 w-full">
-        <div className="grid lg:grid-cols-2 gap-16 items-start lg:pt-6">
-          {/* Left — Copy */}
-          <div className="flex flex-col gap-8">
-            {/* Eyebrow badge */}
-            {/* <motion.div
-              initial={{ opacity: 0, y: 16 }}
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left Column — Content & Positioning */}
+          <div className="flex flex-col gap-6">
+            {/* Enterprise Status Pill */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.4 }}
             >
-              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full pulse-emerald" />
-                Now tracking 4 Q-Commerce Platforms in Real Time
-              </span>
-            </motion.div> */}
+              <Link
+                href="/how-it-works"
+                className="group inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-zinc-700 transition-all shadow-xs"
+              >
+                <div className="flex items-center -space-x-1">
+                  <BlinkitIcon className="w-4 h-4 rounded ring-2 ring-white dark:ring-zinc-900" />
+                  <ZeptoIcon className="w-4 h-4 rounded ring-2 ring-white dark:ring-zinc-900" />
+                  <InstamartIcon className="w-4 h-4 rounded ring-2 ring-white dark:ring-zinc-900" />
+                  <BigBasketIcon className="w-4 h-4 rounded ring-2 ring-white dark:ring-zinc-900" />
+                </div>
+                <span className="w-[1px] h-3 bg-zinc-300 dark:bg-zinc-700" />
+                <span className="text-zinc-800 dark:text-zinc-200 font-medium">
+                  Tracking 500+ dark stores in real time
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+              </Link>
+            </motion.div>
 
             {/* Headline */}
             <motion.div
@@ -481,12 +495,12 @@ export function HeroSection() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="flex flex-col gap-4"
             >
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.08] text-[var(--text-primary)]">
-                Track Your Brand&apos;s Pulse{" "}
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] text-zinc-900 dark:text-zinc-50">
+                Track Your Brand&apos;s Stock{" "}
                 <span className="gradient-text">Across Every Pincode</span>{" "}
                 &amp; Dark Store.
               </h1>
-              <p className="text-lg text-[var(--text-muted)] leading-relaxed max-w-xl">
+              <p className="text-base md:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-xl">
                 Real-time inventory intelligence for FMCG brands on Blinkit, Zepto,
                 Instamart &amp; BigBasket. Know when you&apos;re out of stock before your
                 customers do.
@@ -521,7 +535,7 @@ export function HeroSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.35 }}
-              className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 font-medium"
+              className="flex flex-wrap items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400 font-medium"
             >
               {[
                 { icon: ShieldCheck, text: "No credit card required" },
@@ -529,7 +543,7 @@ export function HeroSection() {
                 { icon: Bell, text: "Real-time OOS alerts" },
               ].map(({ icon: Icon, text }) => (
                 <span key={text} className="flex items-center gap-1.5">
-                  <Icon className="w-3.5 h-3.5 text-emerald-400" />
+                  <Icon className="w-3.5 h-3.5 text-emerald-500" />
                   {text}
                 </span>
               ))}
@@ -540,20 +554,20 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.45 }}
-              className="grid grid-cols-4 gap-4 pt-6 border-t border-[var(--border)]"
+              className="grid grid-cols-4 gap-4 pt-6 border-t border-slate-200 dark:border-zinc-800"
             >
               {STATS.map((stat) => (
                 <div key={stat.label} className="flex flex-col gap-0.5">
-                  <span className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">
+                  <span className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100 font-mono">
                     {stat.value}
                   </span>
-                  <span className="text-xs text-[var(--text-muted)]">{stat.label}</span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">{stat.label}</span>
                 </div>
               ))}
             </motion.div>
           </div>
 
-          {/* Right — Scanner Widget */}
+          {/* Right Column — Scanner Widget */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}

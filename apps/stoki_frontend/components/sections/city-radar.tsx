@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Radio, Zap, TrendingUp, AlertTriangle, ArrowUpRight, Compass, ShieldCheck, Activity } from "lucide-react";
+import { Radio, Zap, TrendingUp, AlertTriangle, Compass, ShieldCheck, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PlatformLogo } from "@/components/ui/platform-logos";
 
 // ─── Radar City Nodes Data ───────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ export function CityRadarSection() {
   const nodes = DARK_STORE_NODES[activeCity] || [];
 
   return (
-    <section className="relative w-full py-24 px-6 overflow-hidden border-y border-[var(--border)] bg-gradient-to-b from-transparent via-[var(--background-secondary)]/50 to-transparent">
+    <section className="relative w-full py-24 px-6 overflow-hidden border-y border-slate-200/80 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/40">
       {/* Background ambient lighting */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-emerald-500/5 blur-[160px] pointer-events-none" />
 
@@ -110,29 +111,28 @@ export function CityRadarSection() {
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full pulse-emerald" />
-                Live Dark-Store Mesh Telemetry
+            {/* <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Multi-Platform Dark-Store Network
               </span>
-              <span className="text-xs font-mono text-zinc-400 hidden sm:inline">
-                Pinging every 60s
+              <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400 hidden sm:inline">
+                60s Verification Cycles
               </span>
-            </div>
+            </div> */}
 
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">
-              Hyperlocal Dark-Store{" "}
-              <span className="gradient-text">City Radar</span>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Store-Level Inventory{" "}
+              <span className="gradient-text">Coverage Matrix</span>
             </h2>
 
-            <p className="text-base md:text-lg text-[var(--text-muted)] max-w-xl">
-              Real-time telemetry across dense urban delivery grids. Every dark store mapped,
-              pinged, and tracked for stock velocity and out-of-stock spikes.
+            <p className="text-base md:text-lg text-zinc-600 dark:text-zinc-400 max-w-xl">
+              Continuous stock visibility across 500+ Blinkit, Zepto, Instamart, and BigBasket fulfillment hubs. Spot localized stockouts before they affect sales.
             </p>
           </div>
 
           {/* City selector tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl glass border">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800">
             {METRO_CITIES.map((city) => (
               <button
                 key={city.id}
@@ -140,8 +140,8 @@ export function CityRadarSection() {
                 className={cn(
                   "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
                   activeCity === city.id
-                    ? "bg-white text-zinc-950 dark:bg-zinc-100 dark:text-zinc-950 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-200 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    ? "bg-white text-zinc-950 dark:bg-zinc-800 dark:text-white shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
                 )}
               >
                 {city.name}
@@ -151,55 +151,55 @@ export function CityRadarSection() {
         </div>
 
         {/* ─── Interactive Radar Stage ─── */}
-        <div className="relative w-full min-h-[580px] lg:min-h-[620px] rounded-3xl glass-strong border overflow-hidden p-6 flex flex-col justify-between">
+        <div className="relative w-full min-h-[580px] lg:min-h-[620px] rounded-3xl bg-white dark:bg-zinc-950 border border-slate-200/90 dark:border-zinc-800 shadow-xl dark:shadow-2xl overflow-hidden p-6 flex flex-col justify-between">
           {/* Radar background grid & rings */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             {/* Radar Coordinates HUD */}
-            <div className="absolute top-4 left-6 flex items-center gap-2 text-[10px] font-mono text-zinc-400">
-              <Compass className="w-3.5 h-3.5 text-emerald-400" />
-              <span>RADAR LAT/LONG:</span>
-              <span className="text-zinc-200 font-semibold">
+            <div className="absolute top-4 left-6 flex items-center gap-2 text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
+              <Compass className="w-3.5 h-3.5 text-emerald-500" />
+              <span>RADAR COORDINATES:</span>
+              <span className="text-zinc-900 dark:text-zinc-200 font-semibold">
                 {METRO_CITIES.find((c) => c.id === activeCity)?.coords}
               </span>
             </div>
 
-            <div className="absolute top-4 right-6 flex items-center gap-3 text-[10px] font-mono text-zinc-400">
+            <div className="absolute top-4 right-6 flex items-center gap-3 text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-emerald" />
-                MESH ACTIVE
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                ACTIVE SCANNER
               </span>
               <span>•</span>
-              <span>FREQUENCY: <strong>60s</strong></span>
+              <span>INTERVAL: <strong className="text-zinc-900 dark:text-zinc-200">60s</strong></span>
             </div>
 
             {/* Concentric radar range rings */}
-            <div className="relative w-[500px] h-[500px] sm:w-[600px] sm:h-[600px] rounded-full border border-emerald-500/10 flex items-center justify-center">
+            <div className="relative w-[500px] h-[500px] sm:w-[600px] sm:h-[600px] rounded-full border border-slate-200 dark:border-emerald-500/10 flex items-center justify-center">
               {/* Distance markers */}
-              <span className="absolute top-2 text-[9px] font-mono text-emerald-500/50">15 KM RANGE</span>
-              
-              <div className="w-[380px] h-[380px] sm:w-[460px] sm:h-[460px] rounded-full border border-emerald-500/15 flex items-center justify-center">
-                <span className="absolute top-2 text-[9px] font-mono text-emerald-500/50">10 KM RANGE</span>
+              <span className="absolute top-2 text-[9px] font-mono text-slate-400 dark:text-emerald-500/50">15 KM RANGE</span>
 
-                <div className="w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] rounded-full border border-emerald-500/20 flex items-center justify-center">
-                  <span className="absolute top-2 text-[9px] font-mono text-emerald-500/50">5 KM CORE</span>
+              <div className="w-[380px] h-[380px] sm:w-[460px] sm:h-[460px] rounded-full border border-slate-200 dark:border-emerald-500/15 flex items-center justify-center">
+                <span className="absolute top-2 text-[9px] font-mono text-slate-400 dark:text-emerald-500/50">10 KM RANGE</span>
+
+                <div className="w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] rounded-full border border-slate-300 dark:border-emerald-500/20 flex items-center justify-center">
+                  <span className="absolute top-2 text-[9px] font-mono text-slate-400 dark:text-emerald-500/50">5 KM CORE</span>
 
                   <div className="w-[140px] h-[140px] sm:w-[180px] sm:h-[180px] rounded-full border border-dashed border-emerald-500/30 flex items-center justify-center">
-                    <span className="text-[9px] font-mono text-emerald-400/80">DARK STORE HUB</span>
+                    <span className="text-[9px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold">DARK STORE HUB</span>
                   </div>
                 </div>
               </div>
 
               {/* Crosshair axis lines */}
-              <div className="absolute inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
-              <div className="absolute inset-y-0 w-[1px] bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent" />
+              <div className="absolute inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-slate-200 dark:via-emerald-500/20 to-transparent" />
+              <div className="absolute inset-y-0 w-[1px] bg-gradient-to-b from-transparent via-slate-200 dark:via-emerald-500/20 to-transparent" />
 
               {/* 360-degree rotating radar scanline */}
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 origin-center pointer-events-none"
               >
-                <div className="w-1/2 h-1/2 origin-bottom-right bg-gradient-to-tl from-emerald-500/20 via-emerald-500/5 to-transparent rounded-tl-full" />
+                <div className="w-1/2 h-1/2 origin-bottom-right bg-gradient-to-tl from-emerald-500/10 via-emerald-500/3 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 to-transparent rounded-tl-full" />
               </motion.div>
             </div>
           </div>
@@ -208,7 +208,7 @@ export function CityRadarSection() {
           <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
               <linearGradient id="beam-grad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity="0.6" />
+                <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
                 <stop offset="100%" stopColor="#10B981" stopOpacity="0.05" />
               </linearGradient>
             </defs>
@@ -243,21 +243,21 @@ export function CityRadarSection() {
                   onMouseEnter={() => setHoveredNode(node.id)}
                   onMouseLeave={() => setHoveredNode(null)}
                 >
-                  {/* Pulsing ring aura */}
+                  {/* Subtle node aura ring */}
                   <div
                     className={cn(
-                      "w-6 h-6 rounded-full absolute -top-1.5 -left-1.5 animate-ping opacity-30",
-                      node.stockStatus === "oos" ? "bg-rose-500" : "bg-emerald-400"
+                      "w-5 h-5 rounded-full absolute -top-1 -left-1 opacity-25 pointer-events-none transition-transform duration-200 group-hover:scale-125",
+                      node.stockStatus === "oos" ? "bg-rose-500" : "bg-emerald-500"
                     )}
                   />
 
                   {/* Core node dot */}
                   <div
                     className={cn(
-                      "relative w-3.5 h-3.5 rounded-full border-2 border-zinc-950 flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-150",
+                      "relative w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-125",
                       node.stockStatus === "oos"
-                        ? "bg-rose-500 ring-2 ring-rose-500/40"
-                        : "bg-emerald-400 ring-2 ring-emerald-400/40"
+                        ? "bg-rose-500 ring-2 ring-rose-500/30"
+                        : "bg-emerald-500 ring-2 ring-emerald-500/30"
                     )}
                   >
                     <div className="w-1 h-1 rounded-full bg-white" />
@@ -266,20 +266,20 @@ export function CityRadarSection() {
                   {/* Hover tooltip HUD */}
                   <div
                     className={cn(
-                      "absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap p-2.5 rounded-xl glass-strong border text-xs z-30 pointer-events-none transition-all duration-200 shadow-2xl",
+                      "absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap p-3 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs z-30 pointer-events-none transition-all duration-200 shadow-xl",
                       isHovered ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
                     )}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="w-2 h-2 rounded-full" style={{ background: node.color }} />
-                      <strong className="text-zinc-100 font-semibold">{node.name}</strong>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <PlatformLogo platform={node.platform} className="w-3.5 h-3.5 rounded" />
+                      <strong className="text-zinc-900 dark:text-zinc-100 font-semibold">{node.name}</strong>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
-                      <span>PIN: <strong className="text-zinc-200">{node.pincode}</strong></span>
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
+                      <span>PIN: <strong className="text-zinc-800 dark:text-zinc-200">{node.pincode}</strong></span>
                       <span>•</span>
-                      <span>LATENCY: <strong className="text-emerald-400">{node.latency}</strong></span>
+                      <span>LATENCY: <strong className="text-emerald-600 dark:text-emerald-400">{node.latency}</strong></span>
                       <span>•</span>
-                      <span className={node.stockStatus === "oos" ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>
+                      <span className={node.stockStatus === "oos" ? "text-rose-600 dark:text-rose-400 font-bold" : "text-emerald-600 dark:text-emerald-400 font-bold"}>
                         {node.stockStatus === "oos" ? "OUT OF STOCK" : `${node.units} Units Live`}
                       </span>
                     </div>
@@ -289,7 +289,7 @@ export function CityRadarSection() {
             })}
           </div>
 
-          {/* ─── 3 Floating Glass Product Cards (Overlaid on Radar) ─── */}
+          {/* ─── 3 Floating Product Cards (Overlaid on Radar) ─── */}
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 my-auto pointer-events-auto">
             {/* Floating Card 1: Red Bull (High Velocity) */}
             <motion.div
@@ -298,39 +298,42 @@ export function CityRadarSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
               whileHover={{ y: -4 }}
-              className="glass border rounded-2xl p-4 shadow-xl backdrop-blur-2xl relative overflow-hidden group hover:border-emerald-500/40 transition-all"
+              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none" />
-              
+
               <div className="flex items-start gap-3">
-                <div className="w-12 h-14 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center shrink-0">
+                <div className="w-12 h-14 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
                   <RedBullMini />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-mono text-zinc-400 font-semibold">
-                      400001 · Bandra West
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <PlatformLogo platform="blinkit" className="w-3.5 h-3.5 rounded shrink-0" />
+                      <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold truncate">
+                        400001 · Bandra W
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                       <TrendingUp className="w-2.5 h-2.5" />
                       24 units/hr
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-zinc-100 truncate">
+                  <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
                     Red Bull Energy 250ml
                   </h4>
-                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">
                     Blinkit POD-402 · 1.4 km
                   </p>
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center justify-between text-[11px]">
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full pulse-emerald" />
-                  <span className="font-semibold text-emerald-400">18 Units In Stock</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">18 Units In Stock</span>
                 </div>
-                <span className="font-mono text-zinc-300 font-bold">₹115.00</span>
+                <span className="font-mono text-zinc-900 dark:text-zinc-100 font-bold">₹115.00</span>
               </div>
             </motion.div>
 
@@ -341,39 +344,42 @@ export function CityRadarSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
               whileHover={{ y: -4 }}
-              className="glass border rounded-2xl p-4 shadow-xl backdrop-blur-2xl relative overflow-hidden group hover:border-rose-500/40 transition-all"
+              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-rose-500/40 transition-all"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none" />
 
               <div className="flex items-start gap-3">
-                <div className="w-12 h-14 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center shrink-0">
+                <div className="w-12 h-14 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
                   <CokeZeroMini />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-mono text-zinc-400 font-semibold">
-                      110001 · Connaught Place
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <PlatformLogo platform="zepto" className="w-3.5 h-3.5 rounded shrink-0" />
+                      <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold truncate">
+                        110001 · Connaught Pl
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 shrink-0">
                       <AlertTriangle className="w-2.5 h-2.5" />
                       OOS Spike
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-zinc-100 truncate">
+                  <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
                     Coca-Cola Zero 300ml
                   </h4>
-                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">
                     Zepto ZPT-CST · 0.8 km
                   </p>
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center justify-between text-[11px]">
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full pulse-red" />
-                  <span className="font-semibold text-rose-400">0 Units (OUT OF STOCK)</span>
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span className="font-semibold text-rose-700 dark:text-rose-400">0 Units (OUT OF STOCK)</span>
                 </div>
-                <span className="text-[10px] text-zinc-400 font-mono">Restock ETA 45m</span>
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">Restock ETA 45m</span>
               </div>
             </motion.div>
 
@@ -384,76 +390,79 @@ export function CityRadarSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
               whileHover={{ y: -4 }}
-              className="glass border rounded-2xl p-4 shadow-xl backdrop-blur-2xl relative overflow-hidden group hover:border-amber-500/40 transition-all"
+              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-amber-500/40 transition-all"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
 
               <div className="flex items-start gap-3">
-                <div className="w-12 h-14 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center shrink-0">
+                <div className="w-12 h-14 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
                   <LaysMini />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-mono text-zinc-400 font-semibold">
-                      560001 · Indiranagar
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <PlatformLogo platform="instamart" className="w-3.5 h-3.5 rounded shrink-0" />
+                      <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold truncate">
+                        560001 · Indiranagar
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
                       <Zap className="w-2.5 h-2.5" />
                       48 units/hr
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-zinc-100 truncate">
+                  <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
                     Lay&apos;s Classic Salted 52g
                   </h4>
-                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">
                     Instamart IM-BLR-07 · 2.1 km
                   </p>
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center justify-between text-[11px]">
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full pulse-emerald" />
-                  <span className="font-semibold text-emerald-400">35 Units In Stock</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">35 Units In Stock</span>
                 </div>
-                <span className="font-mono text-zinc-300 font-bold">₹20.00</span>
+                <span className="font-mono text-zinc-900 dark:text-zinc-100 font-bold">₹20.00</span>
               </div>
             </motion.div>
           </div>
 
           {/* Bottom HUD Metrics Bar */}
-          <div className="relative z-10 pt-4 border-t border-[var(--border)] grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="relative z-10 pt-4 border-t border-slate-200 dark:border-zinc-800 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-zinc-400">Pincode Dark Stores</p>
-                <p className="font-mono font-bold text-zinc-200">
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Pincode Dark Stores</p>
+                <p className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
                   {METRO_CITIES.find((c) => c.id === activeCity)?.storesCount} Nodes Active
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+              <Zap className="w-4 h-4 text-amber-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-zinc-400">Scan Latency</p>
-                <p className="font-mono font-bold text-zinc-200">32ms Median</p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Scan Latency</p>
+                <p className="font-mono font-bold text-zinc-900 dark:text-zinc-100">32ms Median</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <Radio className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Radio className="w-4 h-4 text-emerald-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-zinc-400">Cadence</p>
-                <p className="font-mono font-bold text-zinc-200">Continuous 60s Cron</p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Cron Cadence</p>
+                <p className="font-mono font-bold text-zinc-900 dark:text-zinc-100">Continuous 60s Polling</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-zinc-400">Detection Accuracy</p>
-                <p className="font-mono font-bold text-emerald-400">99.8% Ground Truth</p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Detection Accuracy</p>
+                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">99.8% Ground Truth</p>
               </div>
             </div>
           </div>
