@@ -40,6 +40,7 @@ PRIORITY_QUEUES = [
     "enterprise_bigbasket_tasks",
     "growth_bigbasket_tasks",
     "starter_bigbasket_tasks",
+    "free_bigbasket_tasks",  # Lowest priority, processed only when all others are empty
 ]
 
 

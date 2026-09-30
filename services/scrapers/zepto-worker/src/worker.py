@@ -40,6 +40,7 @@ PRIORITY_QUEUES = [
     "enterprise_zepto_tasks",
     "growth_zepto_tasks",
     "starter_zepto_tasks",
+    "free_zepto_tasks",  # Lowest priority, processed only when all others are empty
 ]
 
 

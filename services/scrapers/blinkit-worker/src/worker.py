@@ -42,6 +42,7 @@ PRIORITY_QUEUES = [
     "enterprise_blinkit_tasks",
     "growth_blinkit_tasks",
     "starter_blinkit_tasks",
+    "free_blinkit_tasks",  # Lowest priority, processed only when all others are empty
 ]
 
 

@@ -40,6 +40,7 @@ PRIORITY_QUEUES = [
     "enterprise_instamart_tasks",
     "growth_instamart_tasks",
     "starter_instamart_tasks",
+    "free_instamart_tasks",  # Lowest priority, processed only when all others are empty
 ]
 
 

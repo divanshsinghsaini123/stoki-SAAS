@@ -61,6 +61,12 @@ PRIORITY_QUEUE_MAP = {
         "instamart": "starter_instamart_tasks",
         "bigbasket": "starter_bigbasket_tasks",
     },
+    "free": {
+        "blinkit": "free_blinkit_tasks",
+        "zepto": "free_zepto_tasks",
+        "instamart": "free_instamart_tasks",
+        "bigbasket": "free_bigbasket_tasks",
+    },
 }
 
 def get_priority_tier(scan_queue_priority: int) -> str:
@@ -69,7 +75,9 @@ def get_priority_tier(scan_queue_priority: int) -> str:
         return "enterprise"
     elif scan_queue_priority == 2:
         return "growth"
-    return "starter"
+    elif scan_queue_priority == 1:
+        return "starter"
+    return "free"  # priority 0 = free tier
 
 # Redis client for task fan-out and distributed locking
 try:
