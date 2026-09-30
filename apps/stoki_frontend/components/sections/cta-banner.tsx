@@ -14,13 +14,13 @@ export function CTABanner() {
         transition={{ duration: 0.6 }}
         className="relative rounded-3xl overflow-hidden glass-strong border p-12 md:p-16 text-center"
       >
-        {/* Background accent */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/10 via-transparent to-purple-600/10 pointer-events-none" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-1 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-60" />
+        {/* Background accent - Emerald to Amber */}
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-amber-500/10 pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-60" />
 
         <div className="relative flex flex-col items-center gap-6">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[var(--accent-subtle)] border border-[var(--accent)]/20">
-            <Zap className="w-6 h-6 text-[var(--accent)]" />
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-500/10 border border-emerald-500/20">
+            <Zap className="w-6 h-6 text-emerald-400" />
           </div>
           <div className="flex flex-col gap-3">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">

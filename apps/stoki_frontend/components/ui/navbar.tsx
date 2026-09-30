@@ -49,9 +49,9 @@ export function Navbar() {
         >
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-accent/10 border border-accent/20">
-              <Zap className="w-4 h-4 text-[var(--accent)]" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 pulse-green" />
+            <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <Zap className="w-4 h-4 text-emerald-400" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full pulse-emerald" />
             </div>
             <span className="font-bold text-base tracking-tight text-[var(--text-primary)]">
               Stoki

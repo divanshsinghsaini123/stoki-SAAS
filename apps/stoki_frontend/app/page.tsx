@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HeroSection } from "@/components/sections/hero";
+import { CityRadarSection } from "@/components/sections/city-radar";
 import { BentoSection } from "@/components/sections/bento";
 import { FAQSection } from "@/components/sections/faq";
 import { CTABanner } from "@/components/sections/cta-banner";
@@ -18,6 +19,7 @@ export default function LandingPage() {
       <Navbar />
       <main className="min-h-screen">
         <HeroSection />
+        <CityRadarSection />
         <BentoSection />
         <FAQSection />
         <CTABanner />

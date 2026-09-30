@@ -2,16 +2,58 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, ChevronRight, ArrowRight, Zap, ShieldCheck, Bell } from "lucide-react";
+import { MapPin, ChevronRight, ArrowRight, Zap, ShieldCheck, Bell, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-// ─── Demo Data ──────────────────────────────────────────────────────────────
+// ─── Demo Data & Product Renders ─────────────────────────────────────────────
 
-const SKUS = [
-  { id: "redbull", name: "Red Bull Energy 250ml", brand: "Red Bull", emoji: "🐂" },
-  { id: "cocacola", name: "Coca-Cola Zero 300ml", brand: "Coca-Cola", emoji: "🥤" },
-  { id: "lays", name: "Lay's Classic Salted 52g", brand: "Lay's", emoji: "🥔" },
+interface SkuData {
+  id: string;
+  name: string;
+  shortName: string;
+  brand: string;
+  skuCode: string;
+  packSize: string;
+  mrp: string;
+  category: string;
+  accent: string;
+}
+
+const SKUS: SkuData[] = [
+  {
+    id: "redbull",
+    name: "Red Bull Energy 250ml",
+    shortName: "Red Bull 250ml",
+    brand: "Red Bull",
+    skuCode: "SKU-RB-250",
+    packSize: "250ml Slim Can",
+    mrp: "₹125.00",
+    category: "Functional Energy",
+    accent: "#38BDF8",
+  },
+  {
+    id: "cocacola",
+    name: "Coca-Cola Zero 300ml",
+    shortName: "Coke Zero 300ml",
+    brand: "Coca-Cola",
+    skuCode: "SKU-CCZ-300",
+    packSize: "300ml Sleek Can",
+    mrp: "₹40.00",
+    category: "Zero Sugar Soda",
+    accent: "#EF4444",
+  },
+  {
+    id: "lays",
+    name: "Lay's Classic Salted 52g",
+    shortName: "Lay's Classic 52g",
+    brand: "Lay's",
+    skuCode: "SKU-LAY-052",
+    packSize: "52g Nitrogen Pack",
+    mrp: "₹20.00",
+    category: "Savory Crisps",
+    accent: "#F59E0B",
+  },
 ];
 
 const PINCODES = [
@@ -72,6 +114,102 @@ const PLATFORMS = [
   },
 ];
 
+// ─── Bespoke Product Vector Illustrations ────────────────────────────────────
+
+function ProductThumbnail({ skuId }: { skuId: string }) {
+  if (skuId === "redbull") {
+    return (
+      <svg className="w-8 h-12 drop-shadow-md" viewBox="0 0 32 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="rb-can" x1="0" y1="0" x2="32" y2="48" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#1E3A8A" />
+            <stop offset="50%" stopColor="#3B82F6" />
+            <stop offset="100%" stopColor="#CBD5E1" />
+          </linearGradient>
+          <linearGradient id="rb-top" x1="0" y1="0" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#94A3B8" />
+            <stop offset="50%" stopColor="#F1F5F9" />
+            <stop offset="100%" stopColor="#64748B" />
+          </linearGradient>
+        </defs>
+        {/* Can Rim */}
+        <rect x="7" y="2" width="18" height="3" rx="1.5" fill="url(#rb-top)" />
+        {/* Can Body */}
+        <rect x="5" y="5" width="22" height="38" rx="3" fill="url(#rb-can)" />
+        {/* Blue & Silver Quad Design */}
+        <path d="M5 5L27 24V43H5V5Z" fill="#1D4ED8" fillOpacity="0.8" />
+        <path d="M5 24L27 5V24H5Z" fill="#E2E8F0" fillOpacity="0.4" />
+        {/* Yellow Sun & Red Bull Graphic */}
+        <circle cx="16" cy="24" r="5" fill="#F59E0B" />
+        <path d="M12 24C14 22 18 22 20 24" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" />
+        {/* Metallic Highlight Sheen */}
+        <rect x="7" y="6" width="3" height="36" rx="1.5" fill="#FFFFFF" fillOpacity="0.35" />
+        {/* Base */}
+        <rect x="7" y="43" width="18" height="2" rx="1" fill="url(#rb-top)" />
+      </svg>
+    );
+  }
+
+  if (skuId === "cocacola") {
+    return (
+      <svg className="w-8 h-12 drop-shadow-md" viewBox="0 0 32 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="coke-can" x1="0" y1="0" x2="32" y2="48" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#18181B" />
+            <stop offset="40%" stopColor="#27272A" />
+            <stop offset="100%" stopColor="#09090B" />
+          </linearGradient>
+          <linearGradient id="coke-top" x1="0" y1="0" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#71717A" />
+            <stop offset="50%" stopColor="#E4E4E7" />
+            <stop offset="100%" stopColor="#52525B" />
+          </linearGradient>
+        </defs>
+        {/* Can Rim */}
+        <rect x="7" y="2" width="18" height="3" rx="1.5" fill="url(#coke-top)" />
+        {/* Can Body */}
+        <rect x="5" y="5" width="22" height="38" rx="3" fill="url(#coke-can)" />
+        {/* Crimson Ribbon Wave */}
+        <path d="M5 28C10 26 18 34 27 30V36C18 40 10 32 5 34V28Z" fill="#DC2626" />
+        {/* ZERO Wordmark */}
+        <text x="16" y="22" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="bold" fontFamily="system-ui" letterSpacing="0.8">ZERO</text>
+        {/* Metallic Highlight Sheen */}
+        <rect x="7" y="6" width="3" height="36" rx="1.5" fill="#FFFFFF" fillOpacity="0.25" />
+        {/* Base */}
+        <rect x="7" y="43" width="18" height="2" rx="1" fill="url(#coke-top)" />
+      </svg>
+    );
+  }
+
+  // Lay's Classic Salted
+  return (
+    <svg className="w-9 h-12 drop-shadow-md" viewBox="0 0 34 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lays-pouch" x1="0" y1="0" x2="34" y2="48" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F59E0B" />
+          <stop offset="50%" stopColor="#FBBF24" />
+          <stop offset="100%" stopColor="#D97706" />
+        </linearGradient>
+      </defs>
+      {/* Pouch Crimp Top */}
+      <path d="M6 3H28L30 7H4L6 3Z" fill="#B45309" />
+      {/* Pouch Main Foil Body */}
+      <rect x="4" y="6" width="26" height="36" rx="4" fill="url(#lays-pouch)" />
+      {/* Red Banner Stripe */}
+      <path d="M4 18H30V28H4V18Z" fill="#DC2626" />
+      {/* Sunburst Emblem */}
+      <circle cx="17" cy="23" r="5.5" fill="#FEF08A" />
+      <text x="17" y="25" textAnchor="middle" fill="#B45309" fontSize="6" fontWeight="900" fontFamily="system-ui">Lay&apos;s</text>
+      {/* Salted Tag */}
+      <text x="17" y="36" textAnchor="middle" fill="#78350F" fontSize="4.5" fontWeight="bold" fontFamily="system-ui">CLASSIC</text>
+      {/* Foil Highlight */}
+      <path d="M7 8C12 12 10 32 7 38" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.4" />
+      {/* Pouch Crimp Bottom */}
+      <path d="M4 41L6 45H28L30 41H4Z" fill="#B45309" />
+    </svg>
+  );
+}
+
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 
 function PlatformCard({
@@ -108,14 +246,14 @@ function PlatformCard({
           <span
             className={cn(
               "w-1.5 h-1.5 rounded-full",
-              isInStock ? "pulse-green" : "pulse-red"
+              isInStock ? "pulse-emerald" : "pulse-red"
             )}
           />
         </div>
       </div>
 
-      {/* Dark Store ID */}
-      <p className="text-[10px] font-mono text-[var(--text-subtle)] tracking-wider">
+      {/* Dark Store ID - Brightened contrast for readability */}
+      <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-400 font-medium tracking-wider">
         {platform.stores[pincodeIdx]}
       </p>
 
@@ -137,15 +275,15 @@ function PlatformCard({
           <span className="text-sm font-bold tabular-nums text-[var(--text-primary)]">
             ₹{price[0]}
           </span>
-          <span className="text-[11px] text-[var(--text-subtle)] line-through tabular-nums">
+          <span className="text-[11px] text-zinc-400 dark:text-zinc-400 line-through tabular-nums font-medium">
             ₹{price[1]}
           </span>
-          <span className="text-[10px] text-emerald-500 font-semibold">
+          <span className="text-[10px] text-emerald-400 font-semibold">
             {Math.round(((price[1]! - price[0]!) / price[1]!) * 100)}% off
           </span>
         </div>
       ) : (
-        <span className="text-[11px] text-[var(--text-subtle)]">Price unavailable</span>
+        <span className="text-[11px] text-zinc-400 dark:text-zinc-400 font-medium">Price unavailable</span>
       )}
     </motion.div>
   );
@@ -169,49 +307,85 @@ export function ScannerWidget() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isTyping]);
 
-  const currentPin = isTyping ? manualPin : PINCODES[pinIdx];
+  const activeProduct = SKUS[activeSku];
 
   return (
     <div className="relative rounded-2xl glass-strong border p-5 w-full max-w-lg">
-      {/* Glow orb behind widget */}
-      <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[var(--accent)] opacity-10 blur-3xl pointer-events-none" />
+      {/* Glow orb behind widget - Emerald/Amber */}
+      <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full pulse-green" />
+          <span className="w-2 h-2 rounded-full pulse-emerald" />
           <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Live Scanner
           </span>
         </div>
-        <div className="ml-auto flex items-center gap-1 text-[10px] font-mono text-[var(--text-subtle)]">
-          <Zap className="w-3 h-3 text-[var(--accent)]" />
+        <div className="ml-auto flex items-center gap-1 text-[10px] font-mono text-zinc-400 font-medium">
+          <Zap className="w-3 h-3 text-emerald-400" />
           REAL-TIME
         </div>
       </div>
 
-      {/* SKU Tabs */}
-      <div className="flex gap-1 mb-4 bg-[var(--background)] rounded-xl p-1 border border-[var(--border)]">
+      {/* SKU Tabs - Emojis removed, clean brand pills */}
+      <div className="flex gap-1.5 mb-3 bg-[var(--background)] rounded-xl p-1 border border-[var(--border)]">
         {SKUS.map((sku, i) => (
           <button
             key={sku.id}
             onClick={() => setActiveSku(i)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-medium transition-all duration-200",
+              "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all duration-200",
               activeSku === i
-                ? "bg-[var(--accent)] text-white shadow-sm"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "bg-white text-zinc-950 dark:bg-zinc-100 dark:text-zinc-950 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 dark:text-zinc-400 dark:hover:text-zinc-200"
             )}
           >
-            <span>{sku.emoji}</span>
-            <span className="hidden sm:block truncate">{sku.name.split(" ").slice(0, 2).join(" ")}</span>
+            <span
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: sku.accent }}
+            />
+            <span className="truncate">{sku.shortName}</span>
           </button>
         ))}
       </div>
 
+      {/* Selected Product Showcase Banner */}
+      <motion.div
+        key={activeProduct.id}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-zinc-900/80 border border-zinc-800/90 shadow-sm"
+      >
+        <div className="w-11 h-13 shrink-0 rounded-lg flex items-center justify-center bg-black/50 border border-zinc-800/80 shadow-inner">
+          <ProductThumbnail skuId={activeProduct.id} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h4 className="font-semibold text-xs text-zinc-100 truncate">
+              {activeProduct.name}
+            </h4>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold shrink-0">
+              {activeProduct.skuCode}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+            <span className="font-mono text-zinc-300 font-medium">{activeProduct.packSize}</span>
+            <span>•</span>
+            <span>MRP <strong className="font-mono text-zinc-200 font-bold">{activeProduct.mrp}</strong></span>
+            <span>•</span>
+            <span className="text-emerald-400 font-medium flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-emerald-400" />
+              4 Platforms Live
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Pincode Roller */}
       <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
-        <MapPin className="w-4 h-4 text-[var(--accent)] shrink-0" />
+        <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
         <div className="flex-1 overflow-hidden">
           {!isTyping ? (
             <AnimatePresence mode="wait">
@@ -226,7 +400,7 @@ export function ScannerWidget() {
                 <span className="font-mono text-sm font-bold text-[var(--text-primary)]">
                   {PINCODES[pinIdx].code}
                 </span>
-                <span className="text-xs text-[var(--text-muted)]">
+                <span className="text-xs text-zinc-300 dark:text-zinc-300 font-medium">
                   {PINCODES[pinIdx].city}
                 </span>
               </motion.div>
@@ -237,7 +411,7 @@ export function ScannerWidget() {
               value={manualPin}
               onChange={(e) => setManualPin(e.target.value.replace(/\D/, "").slice(0, 6))}
               placeholder="Enter 6-digit pincode..."
-              className="w-full bg-transparent font-mono text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-subtle)]"
+              className="w-full bg-transparent font-mono text-sm text-[var(--text-primary)] outline-none placeholder:text-zinc-500"
             />
           )}
         </div>
@@ -246,7 +420,7 @@ export function ScannerWidget() {
             setIsTyping(!isTyping);
             if (isTyping) setManualPin("");
           }}
-          className="text-[10px] text-[var(--accent)] font-semibold hover:underline shrink-0"
+          className="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold hover:underline shrink-0"
         >
           {isTyping ? "Auto" : "Edit"}
         </button>
@@ -254,7 +428,7 @@ export function ScannerWidget() {
 
       {/* 4-Platform Matrix */}
       <div className="grid grid-cols-2 gap-2">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {PLATFORMS.map((platform) => (
             <PlatformCard
               key={`${platform.id}-${pinIdx}-${activeSku}`}
@@ -267,8 +441,8 @@ export function ScannerWidget() {
       </div>
 
       {/* Footer note */}
-      <p className="text-center text-[10px] text-[var(--text-subtle)] mt-3">
-        Demo data · Connect your brand for live intelligence
+      <p className="text-center text-[10px] text-zinc-400 dark:text-zinc-400 font-medium mt-3">
+        Live telemetry snapshot · Connect your brand catalog for real-time alerts
       </p>
     </div>
   );
@@ -286,9 +460,9 @@ const STATS = [
 export function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center pt-28 pb-16 overflow-hidden noise">
-      {/* Background glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[var(--accent)] opacity-[0.04] blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-purple-600 opacity-[0.04] blur-[100px] pointer-events-none" />
+      {/* Background glows - Emerald & Amber tones, NO purple */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-emerald-500/10 opacity-[0.06] blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-amber-500/10 opacity-[0.05] blur-[100px] pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-6 w-full">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -300,9 +474,9 @@ export function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border bg-[var(--accent-subtle)] text-[var(--accent)] border-[var(--accent)]/20">
-                <span className="w-1.5 h-1.5 rounded-full pulse-indigo" />
-                Now tracking 4 Q-Commerce Platforms
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full pulse-emerald" />
+                Now tracking 4 Q-Commerce Platforms in Real Time
               </span>
             </motion.div>
 
@@ -353,7 +527,7 @@ export function HeroSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.35 }}
-              className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-subtle)]"
+              className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 font-medium"
             >
               {[
                 { icon: ShieldCheck, text: "No credit card required" },
@@ -361,7 +535,7 @@ export function HeroSection() {
                 { icon: Bell, text: "Real-time OOS alerts" },
               ].map(({ icon: Icon, text }) => (
                 <span key={text} className="flex items-center gap-1.5">
-                  <Icon className="w-3.5 h-3.5 text-[var(--accent)]" />
+                  <Icon className="w-3.5 h-3.5 text-emerald-400" />
                   {text}
                 </span>
               ))}
@@ -399,3 +573,4 @@ export function HeroSection() {
     </section>
   );
 }
+
