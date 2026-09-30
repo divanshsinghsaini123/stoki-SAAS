@@ -1,26 +1,246 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   STOKI DESIGN SYSTEM — CSS CUSTOM PROPERTIES
+   Persona: Linear.app meets Stripe & Vercel for Q-Commerce
+   ============================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Night Mode (Obsidian Glass) — DEFAULT */
+    --background: #09090B;
+    --background-secondary: #111113;
+    --surface: rgba(24, 24, 27, 0.65);
+    --surface-solid: #18181B;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.12);
+
+    --text-primary: #FAFAFA;
+    --text-muted: #A1A1AA;
+    --text-subtle: #52525B;
+
+    --accent: #6366F1;
+    --accent-hover: #818CF8;
+    --accent-glow: rgba(99, 102, 241, 0.25);
+    --accent-subtle: rgba(99, 102, 241, 0.08);
+
+    /* Q-Commerce Platform Tokens */
+    --blinkit: #F8CB46;
+    --blinkit-bg: rgba(248, 203, 70, 0.08);
+    --zepto: #8B5CF6;
+    --zepto-bg: rgba(139, 92, 246, 0.08);
+    --instamart: #FC8019;
+    --instamart-bg: rgba(252, 128, 25, 0.08);
+    --bigbasket: #84C225;
+    --bigbasket-bg: rgba(132, 194, 37, 0.08);
+
+    /* Status Tokens */
+    --in-stock: #10B981;
+    --in-stock-bg: rgba(16, 185, 129, 0.08);
+    --oos: #F43F5E;
+    --oos-bg: rgba(244, 63, 94, 0.08);
+
+    --radius: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-full: 9999px;
   }
+
+  .light {
+    /* Daylight Mode (Crisp Editorial Paper) */
+    --background: #FAFAFA;
+    --background-secondary: #F4F4F5;
+    --surface: #FFFFFF;
+    --surface-solid: #FFFFFF;
+    --border: #E4E4E7;
+    --border-strong: #D4D4D8;
+
+    --text-primary: #09090B;
+    --text-muted: #71717A;
+    --text-subtle: #A1A1AA;
+
+    --accent: #4F46E5;
+    --accent-hover: #4338CA;
+    --accent-glow: rgba(79, 70, 229, 0.15);
+    --accent-subtle: rgba(79, 70, 229, 0.06);
+
+    --blinkit-bg: rgba(248, 203, 70, 0.12);
+    --zepto-bg: rgba(139, 92, 246, 0.10);
+    --instamart-bg: rgba(252, 128, 25, 0.10);
+    --bigbasket-bg: rgba(132, 194, 37, 0.10);
+  }
+
+  * {
+    border-color: var(--border);
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-geist-sans), 'Plus Jakarta Sans', system-ui, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Monospace: Pincodes, SKUs, prices, crons, timestamps */
+  .mono {
+    font-family: var(--font-geist-mono), 'JetBrains Mono', monospace;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+/* Glass Surface */
+.glass {
+  background: var(--surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+}
+
+.glass-strong {
+  background: var(--surface);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border-strong);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Accent Gradient Button */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, #818CF8 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 0 20px var(--accent-glow);
+  transition: all 0.2s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 32px var(--accent-glow), 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Ghost Button */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+}
+
+/* Platform Badges */
+.badge-blinkit {
+  background: var(--blinkit-bg);
+  color: #D4A00A;
+  border: 1px solid rgba(248, 203, 70, 0.2);
+}
+.dark .badge-blinkit { color: var(--blinkit); }
+
+.badge-zepto {
+  background: var(--zepto-bg);
+  color: #7C3AED;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+.dark .badge-zepto { color: var(--zepto); }
+
+.badge-instamart {
+  background: var(--instamart-bg);
+  color: #D4600A;
+  border: 1px solid rgba(252, 128, 25, 0.2);
+}
+.dark .badge-instamart { color: var(--instamart); }
+
+.badge-bigbasket {
+  background: var(--bigbasket-bg);
+  color: #4D7A10;
+  border: 1px solid rgba(132, 194, 37, 0.2);
+}
+.dark .badge-bigbasket { color: var(--bigbasket); }
+
+/* Stock Status Indicators */
+.badge-in-stock {
+  background: var(--in-stock-bg);
+  color: var(--in-stock);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.badge-oos {
+  background: var(--oos-bg);
+  color: var(--oos);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+/* Pulse Dots */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.pulse-green { animation: pulse-dot 2s ease-in-out infinite; background: var(--in-stock); }
+.pulse-red { animation: pulse-dot 1.2s ease-in-out infinite; background: var(--oos); }
+.pulse-indigo { animation: pulse-dot 2.5s ease-in-out infinite; background: var(--accent); }
+
+/* Marquee */
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.animate-marquee-left { animation: marquee-left 28s linear infinite; }
+.animate-marquee-right { animation: marquee-right 28s linear infinite; }
+.animate-marquee-left:hover,
+.animate-marquee-right:hover { animation-play-state: paused; }
+
+/* Shimmer Skeleton */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+
+/* Glow Border (for Pro plan card) */
+@keyframes glow-border {
+  0%, 100% { box-shadow: 0 0 12px var(--accent-glow), 0 0 24px var(--accent-glow); }
+  50% { box-shadow: 0 0 24px var(--accent-glow), 0 0 48px var(--accent-glow); }
+}
+.glow-border { animation: glow-border 3s ease-in-out infinite; }
+
+/* Noise Texture Overlay (for dark hero sections) */
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
 }
