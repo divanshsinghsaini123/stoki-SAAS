@@ -469,13 +469,13 @@ export function ScannerWidget() {
       {/* 3D Product Showcase Stage - Enlarged (Height: 188px) */}
       <div className="relative rounded-xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200/90 dark:border-zinc-800/90 p-3 sm:p-3.5 mb-3 shadow-xs h-[188px] overflow-hidden flex items-center justify-between">
         {/* Left & Center: 3D Product Mockup + Live Info with Animated Swap */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync" initial={false}>
           <motion.div
             key={activeProduct.id}
-            initial={{ opacity: 0, x: 16 }}
+            initial={{ opacity: 0, x: 12 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -16 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
             className="flex items-center gap-3.5 flex-1 min-w-0"
           >
             {/* Enlarged 3D Product Stage Pedestal Container */}
