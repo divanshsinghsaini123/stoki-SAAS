@@ -302,9 +302,9 @@ def dispatch_due_campaigns() -> dict[str, Any]:
 
             if redis_client:
                 # Determine priority tier from subscription plan
-                priority = getattr(plan, "scan_queue_priority", 1) if plan else 1
+                priority = getattr(plan, "scan_queue_priority", 1) if plan else 0
                 tier = get_priority_tier(priority)
-                tier_queues = PRIORITY_QUEUE_MAP.get(tier, PRIORITY_QUEUE_MAP["starter"])
+                tier_queues = PRIORITY_QUEUE_MAP.get(tier, PRIORITY_QUEUE_MAP["free"])
 
                 for platform_name in platforms:
                     queue_name = tier_queues.get(platform_name.lower())
