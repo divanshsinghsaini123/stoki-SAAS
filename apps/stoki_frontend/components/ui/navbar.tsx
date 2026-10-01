@@ -64,13 +64,12 @@ export function Navbar() {
             </Link>
           </motion.div>
 
-          {/* Island 2: Navigation Links Capsule (Enhanced Height & Clearer Contrast) */}
+          {/* Island 2: Navigation Links Capsule (Segmented Control Aesthetic) */}
           <motion.nav
             layout
             className={cn(
-              "hidden md:flex items-center gap-1 rounded-full transition-all duration-300",
-              "bg-white/95 dark:bg-zinc-900/95 border border-slate-300 dark:border-zinc-700 shadow-md shadow-black/5 dark:shadow-black/40 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10",
-              scrolled ? "px-3 py-1.5" : "px-4 py-2 sm:py-2.5"
+              "hidden md:flex items-center gap-1 rounded-full transition-all duration-300 p-1",
+              "bg-white/95 dark:bg-zinc-900/95 border border-slate-300 dark:border-zinc-700 shadow-md shadow-black/5 dark:shadow-black/40 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10"
             )}
           >
             {NAV_LINKS.map((link) => {
@@ -80,17 +79,17 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "relative px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200",
+                    "relative px-4 py-2 text-xs transition-all duration-200",
                     isActive
-                      ? "text-zinc-950 dark:text-white font-bold"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+                      ? "text-white dark:text-zinc-950 font-bold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white font-medium"
                   )}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="segmented-pill-active"
-                      className="absolute inset-0 rounded-full bg-slate-200/90 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-600 shadow-2xs"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      className="absolute inset-0 rounded-full bg-zinc-950 dark:bg-white shadow-sm"
+                      transition={{ type: "spring", stiffness: 420, damping: 30 }}
                     />
                   )}
                   <span className="relative z-10">{link.label}</span>
