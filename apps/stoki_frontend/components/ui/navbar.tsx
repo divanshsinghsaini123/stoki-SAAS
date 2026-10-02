@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sun, Moon, Menu, X, Zap, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { Sun, Moon, Menu, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -44,19 +45,26 @@ export function Navbar() {
             scrolled ? "gap-2 sm:gap-2.5" : "gap-3 sm:gap-4"
           )}
         >
-          {/* Island 1: Brand Capsule (No Live Button, Enhanced Height & Contrast) */}
+          {/* Island 1: Brand Capsule */}
           <motion.div
             layout
             className={cn(
               "rounded-full flex items-center transition-all duration-300",
               "bg-white/95 dark:bg-zinc-900/95 border border-slate-300 dark:border-zinc-700 shadow-md shadow-black/5 dark:shadow-black/40 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10",
-              scrolled ? "px-4 py-2" : "px-5 py-2.5 sm:py-3",
+              scrolled ? "px-3.5 py-1.5" : "px-4 py-2 sm:py-2.5",
               "hover:border-slate-400 dark:hover:border-zinc-600"
             )}
           >
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 group-hover:scale-105 transition-transform">
-                <Zap className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+              <div className="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden group-hover:scale-105 transition-transform shrink-0">
+                <Image
+                  src="/stoki_v2.png"
+                  alt="Stoki Logo"
+                  width={32}
+                  height={32}
+                  priority
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-extrabold text-base tracking-tight text-zinc-950 dark:text-zinc-50">
                 Stoki
