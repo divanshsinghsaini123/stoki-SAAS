@@ -5,6 +5,35 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # --- Authentication Schemas ---
 
+class SignUpRequest(BaseModel):
+    full_name: str = Field(..., min_length=2, description="User's full name")
+    email: EmailStr
+    phone_number: str | None = None
+    password: str = Field(..., min_length=6, description="Password (at least 6 characters)")
+    otp: str | None = Field(default=None, description="6-digit verification code")
+
+
+class SendOTPRequest(BaseModel):
+    email: EmailStr
+    purpose: str = Field(default="signup", description="'signup' or 'forgot_password'")
+    full_name: str | None = None
+
+
+class ForgotPasswordResetRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=4, max_length=10, description="OTP received on email")
+    new_password: str = Field(..., min_length=6, description="New secure password")
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str = Field(..., description="Google OAuth2 ID Token from client")
+
+
+class MessageResponse(BaseModel):
+    success: bool = True
+    message: str
+
+
 class UserRegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6, description="Password (at least 6 characters)")
@@ -16,6 +45,7 @@ class UserRegisterRequest(BaseModel):
 class UserLoginRequest(BaseModel):
     email: EmailStr
     password: str
+
 
 
 class UserSummary(BaseModel):
