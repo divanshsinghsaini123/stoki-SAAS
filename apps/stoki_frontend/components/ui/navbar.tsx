@@ -158,7 +158,7 @@ export function Navbar() {
 
             {/* CTA Button with subtle hover arrow micro-interaction */}
             <Link
-              href="/register"
+              href="/signup"
               className="group inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-sm"
             >
               <span>Start Free</span>
@@ -234,7 +234,7 @@ export function Navbar() {
                   Login
                 </Link>
                 <Link
-                  href="/register"
+                  href="/signup"
                   onClick={() => setMobileOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-semibold text-center bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
                 >
