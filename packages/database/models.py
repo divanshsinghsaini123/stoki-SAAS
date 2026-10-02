@@ -1,4 +1,5 @@
 # packages/database/models.py
+import enum
 import uuid
 from sqlalchemy import (
     Column,
@@ -9,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Enum as SAEnum,
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -427,3 +429,41 @@ class ScraperFailureLog(Base):
             f"query='{self.query}', "
             f"error='{self.error_message}')>"
         )
+
+
+class DiscountType(str, enum.Enum):
+    PERCENTAGE = "PERCENTAGE"
+    FLAT = "FLAT"
+
+
+class Coupon(Base):
+    """In-app discount coupons and promotional campaigns for Stoki subscriptions."""
+
+    __tablename__ = "coupons"
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    code = Column(String(50), unique=True, nullable=False, index=True)
+    discount_type = Column(
+        SAEnum(DiscountType, name="coupon_discount_type", native_enum=False),
+        nullable=False,
+    )
+    discount_value = Column(Integer, nullable=False)
+    applicable_plans = Column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    min_checkout_amount = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    max_uses = Column(Integer, nullable=True)
+    used_count = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    valid_until = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Coupon(code='{self.code}', type='{self.discount_type}', val={self.discount_value})>"

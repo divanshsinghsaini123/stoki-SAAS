@@ -22,3 +22,9 @@ JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
 
 # Database URL for Auth (tenants, tenant_users)
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://stoki:stoki_password@localhost:5434/stoki_db")
+
+# Razorpay Payment Gateway Config
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_StokiDevKey123")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "stoki_test_secret_abc123")
+RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "stoki_webhook_secret_xyz789")
+

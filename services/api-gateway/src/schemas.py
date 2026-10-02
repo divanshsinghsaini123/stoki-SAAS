@@ -57,3 +57,42 @@ class UserProfileResponse(BaseModel):
     scans_used_today: int
     extra_scan_credits: int
     current_period_end: datetime | None = None
+
+
+# --- Payment & Coupon Schemas ---
+
+class ApplyCouponRequest(BaseModel):
+    plan_id: str = Field(..., description="ID or code of the subscription plan (e.g. STARTER_30D, PRO_30D, ANNUAL)")
+    coupon_code: str = Field(..., min_length=1, description="Promotional coupon code")
+
+
+class ApplyCouponResponse(BaseModel):
+    valid: bool = True
+    code: str
+    base_price: int
+    discount_amount: int
+    final_amount: int
+
+
+class CreateOrderRequest(BaseModel):
+    plan_id: str = Field(..., description="Subscription plan identifier")
+    coupon_code: str | None = Field(default=None, description="Optional coupon code to apply")
+
+
+class CreateOrderResponse(BaseModel):
+    order_id: str
+    amount: int
+    currency: str = "INR"
+    key_id: str
+
+
+class VerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+
+class VerifyPaymentResponse(BaseModel):
+    success: bool
+    redirect_url: str = "/dashboard?payment=success"
+

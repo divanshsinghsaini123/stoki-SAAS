@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, Globe, MessageCircle, Briefcase } from "lucide-react";
+import Image from "next/image";
+import { Globe, MessageCircle, Briefcase } from "lucide-react";
 import { PlatformLogo } from "@/components/ui/platform-logos";
 
 const FOOTER_LINKS = {
@@ -40,9 +41,15 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-14">
           {/* Brand Column */}
           <div className="col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-3.5">
-              <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Link href="/" className="flex items-center gap-2.5 mb-3.5 group">
+              <div className="relative flex items-center justify-center w-7 h-7 rounded-lg overflow-hidden group-hover:scale-105 transition-transform">
+                <Image
+                  src="/stoki_v2.png"
+                  alt="Stoki Logo"
+                  width={28}
+                  height={28}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-bold text-base tracking-tight text-zinc-900 dark:text-zinc-50">Stoki</span>
             </Link>
