@@ -467,3 +467,29 @@ class Coupon(Base):
 
     def __repr__(self) -> str:
         return f"<Coupon(code='{self.code}', type='{self.discount_type}', val={self.discount_value})>"
+
+
+class AuthOTP(Base):
+    """Temporary one-time passwords for email verification and password resets."""
+
+    __tablename__ = "auth_otps"
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    email = Column(String(150), nullable=False, index=True)
+    otp_code = Column(String(10), nullable=False)
+    purpose = Column(String(50), nullable=False, default="signup")  # 'signup', 'forgot_password'
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    is_used = Column(Boolean, nullable=False, default=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    def __repr__(self) -> str:
+        return f"<AuthOTP(email='{self.email}', purpose='{self.purpose}', used={self.is_used})>"
