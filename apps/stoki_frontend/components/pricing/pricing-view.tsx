@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   Check,
   Zap,
@@ -15,6 +15,7 @@ import {
 import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
 import { CheckoutModal, PlanItem } from "@/components/pricing/checkout-modal";
+import { FAQSection } from "@/components/sections/faq";
 import { cn } from "@/lib/utils";
 
 const PLANS: PlanItem[] = [
@@ -73,24 +74,28 @@ const PLANS: PlanItem[] = [
   },
 ];
 
-const PRICING_FAQS = [
-  {
-    q: "How does the 30-Day Intelligence Pass work?",
-    a: "Every pass grants uninterrupted real-time scraping and inventory telemetry for 30 full days from checkout. You can renew seamlessly at any time without long-term lock-in.",
+const pricingContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
   },
-  {
-    q: "What payment methods are supported via Razorpay?",
-    a: "We support all major Indian UPI apps (Google Pay, PhonePe, Paytm, Cred), Credit/Debit Cards (Visa, Mastercard, RuPay, Amex), Net Banking across 50+ banks, and Corporate Cards.",
+};
+
+const pricingCardVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut",
+    },
   },
-  {
-    q: "How do in-app promo coupons work?",
-    a: "Select your desired plan and enter any active promo code (such as STOKI20 for 20% off) directly on the Checkout screen to apply immediate discounts before paying.",
-  },
-  {
-    q: "Can I receive GST tax invoices?",
-    a: "Yes! Every successful Razorpay transaction generates an automated GST-compliant invoice sent directly to your work email with full ITC input credit breakdown.",
-  },
-];
+};
 
 export function PricingView() {
   const [selectedPlan, setSelectedPlan] = useState<PlanItem>(PLANS[1]); // default to PRO_30D
@@ -105,26 +110,31 @@ export function PricingView() {
     <>
       <Navbar />
 
-      <main className="min-h-screen pt-32 pb-24 px-4 sm:px-6 max-w-7xl mx-auto">
+      <main className="relative min-h-screen pt-32 pb-24 px-4 sm:px-6 max-w-7xl mx-auto overflow-hidden">
+        {/* Ambient background glows matching landing page */}
+        <div className="absolute top-20 left-1/4 w-96 h-96 rounded-full bg-emerald-500/10 opacity-[0.06] blur-[120px] pointer-events-none" />
+        <div className="absolute top-80 right-1/4 w-80 h-80 rounded-full bg-amber-500/10 opacity-[0.05] blur-[100px] pointer-events-none" />
+
         {/* Hero Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+        <div className="relative text-center max-w-3xl mx-auto mb-16 space-y-4">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+            transition={{ duration: 0.3 }}
+            className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 shadow-xs"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>TRANSPARENT PASS-BASED PRICING</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-mono tracking-wider">TRANSPARENT PASS-BASED PRICING</span>
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="text-4xl sm:text-5xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50"
+            transition={{ duration: 0.4, delay: 0.05 }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-zinc-950 dark:text-zinc-50"
           >
             Zero Lock-In.{" "}
-            <span className="bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 bg-clip-text text-transparent">
+            <span className="gradient-text">
               Unlimited Intelligence.
             </span>
           </motion.h1>
@@ -132,8 +142,8 @@ export function PricingView() {
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto"
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed"
           >
             Prevent revenue leakage from dark-store stockouts. Activate instant 30-day or annual
             telemetry passes with official Razorpay Standard integration.
@@ -141,18 +151,22 @@ export function PricingView() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20 items-stretch">
-          {PLANS.map((plan, index) => {
+        <motion.div
+          variants={pricingContainerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-40px" }}
+          className="relative grid grid-cols-1 md:grid-cols-3 gap-8 mb-20 items-stretch"
+        >
+          {PLANS.map((plan) => {
             const isPopular = plan.id === "PRO_30D";
 
             return (
               <motion.div
                 key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 + index * 0.1 }}
+                variants={pricingCardVariants}
                 className={cn(
-                  "relative flex flex-col justify-between rounded-3xl p-8 transition-all duration-300",
+                  "relative flex flex-col justify-between rounded-3xl p-8 transition-[border-color,box-shadow] duration-200",
                   "bg-white dark:bg-zinc-900/90 border",
                   isPopular
                     ? "border-emerald-500/80 dark:border-emerald-500 ring-2 ring-emerald-500/20 shadow-xl shadow-emerald-500/10"
@@ -213,7 +227,7 @@ export function PricingView() {
                   type="button"
                   onClick={() => openCheckout(plan)}
                   className={cn(
-                    "w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 shadow-sm",
+                    "w-full py-3.5 px-5 rounded-full font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 shadow-sm",
                     isPopular
                       ? "bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-emerald-500/25 active:scale-[0.98]"
                       : "bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 active:scale-[0.98]"
@@ -225,10 +239,10 @@ export function PricingView() {
               </motion.div>
             );
           })}
-        </div>
+        </motion.div>
 
         {/* Security & Assurance Ribbon */}
-        <div className="p-8 rounded-3xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 mb-20">
+        <div className="p-8 rounded-3xl bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 shadow-sm mb-20">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -274,34 +288,20 @@ export function PricingView() {
           </div>
         </div>
 
-        {/* FAQs Section */}
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Have questions regarding billing, passes, or platforms? We have answers.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {PRICING_FAQS.map((faq, idx) => (
-              <div
-                key={idx}
-                className="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800"
-              >
-                <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                  <HelpCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                  {faq.q}
-                </h3>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed pl-6">
-                  {faq.a}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Unified Interactive FAQ Section (Shared with Landing Page) */}
+        <FAQSection
+          eyebrow="PASS & BILLING FAQ"
+          title="Frequently asked questions."
+          subtitle={
+            <>
+              Have questions regarding 30-day passes, scraping quotas, or payments?{" "}
+              <a href="/contact" className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">
+                Talk to our engineering team →
+              </a>
+            </>
+          }
+          className="py-12 sm:py-16"
+        />
       </main>
 
       {/* Razorpay Standard Modal Component with In-App Coupon Engine */}
