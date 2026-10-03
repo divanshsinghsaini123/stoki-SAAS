@@ -19,6 +19,7 @@ import {
   KeyRound,
   ArrowLeft,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/api";
 
@@ -34,10 +35,16 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
   const redirectTarget = searchParams.get("redirect") || "/dashboard";
 
   const [view, setView] = useState<AuthView>(initialMode);
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form Fields
   const [fullName, setFullName] = useState("");
@@ -553,17 +560,20 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
         {(view === "signin" || view === "signup") && (
           <>
             {/* Primary 1-Click CTA: Continue with Google */}
-            <div className="mb-4">
+            <div className="mb-4 flex justify-center">
               <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
-                <div className="w-full flex justify-center [&>div]:w-full">
+                <div
+                  className="w-full flex justify-center [&>div]:!overflow-hidden [&>div]:!rounded-full [&_iframe]:!rounded-full [&_iframe]:!overflow-hidden"
+                  style={{ colorScheme: mounted && resolvedTheme === "dark" ? "dark" : "light" }}
+                >
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
                     onError={() => setErrorMsg("Google Sign-In was cancelled or failed.")}
-                    theme="outline"
+                    theme={mounted && resolvedTheme === "dark" ? "filled_black" : "outline"}
                     size="large"
                     text={view === "signin" ? "signin_with" : "signup_with"}
                     shape="pill"
-                    width="100%"
+                    width="360"
                   />
                 </div>
               </GoogleOAuthProvider>

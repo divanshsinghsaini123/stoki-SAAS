@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Radio, Zap, TrendingUp, AlertTriangle, Compass, ShieldCheck, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlatformLogo } from "@/components/ui/platform-logos";
@@ -95,6 +95,29 @@ function LaysMini() {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
+
+const radarCardsContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const radarCardVariants: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut",
+    },
+  },
+};
 
 export function CityRadarSection() {
   const [activeCity, setActiveCity] = useState("mumbai");
@@ -290,15 +313,18 @@ export function CityRadarSection() {
           </div>
 
           {/* ─── 3 Floating Product Cards (Overlaid on Radar) ─── */}
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 my-auto pointer-events-auto">
+          <motion.div
+            variants={radarCardsContainerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-40px" }}
+            className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 my-auto pointer-events-auto"
+          >
             {/* Floating Card 1: Red Bull (High Velocity) */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              whileHover={{ y: -4 }}
-              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all"
+              variants={radarCardVariants}
+              whileHover={{ y: -4, transition: { duration: 0.15 } }}
+              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-emerald-500/40 transition-[border-color,box-shadow] duration-200"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none" />
 
@@ -339,12 +365,9 @@ export function CityRadarSection() {
 
             {/* Floating Card 2: Coca-Cola Zero (Critical OOS Spike) */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              whileHover={{ y: -4 }}
-              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-rose-500/40 transition-all"
+              variants={radarCardVariants}
+              whileHover={{ y: -4, transition: { duration: 0.15 } }}
+              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-rose-500/40 transition-[border-color,box-shadow] duration-200"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none" />
 
@@ -385,12 +408,9 @@ export function CityRadarSection() {
 
             {/* Floating Card 3: Lay's Classic Salted (Surge Velocity) */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              whileHover={{ y: -4 }}
-              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-amber-500/40 transition-all"
+              variants={radarCardVariants}
+              whileHover={{ y: -4, transition: { duration: 0.15 } }}
+              className="bg-white/95 dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800 rounded-2xl p-4 shadow-lg dark:shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-amber-500/40 transition-[border-color,box-shadow] duration-200"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
 
@@ -428,7 +448,7 @@ export function CityRadarSection() {
                 <span className="font-mono text-zinc-900 dark:text-zinc-100 font-bold">₹20.00</span>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
 
           {/* Bottom HUD Metrics Bar */}
           <div className="relative z-10 pt-4 border-t border-slate-200 dark:border-zinc-800 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">

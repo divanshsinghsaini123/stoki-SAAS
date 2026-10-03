@@ -73,17 +73,21 @@ Use `next-themes` with CSS variables in `globals.css`. Both modes must look equa
    - **Card 2:** Instant OOS Alert simulation (Slack/Email/In-App toast animation).
    - **Card 3:** Price & Discount Variance sparkline chart across platforms.
    - **Card 4:** Automated Cron Campaign Scheduler preview.
-4. **Interactive FAQ Accordion:**
-   - Clean 6-question accordion on the homepage answering pincode coverage, scan frequency, and 30-day pass billing.
+4. **Canonical Interactive FAQ Accordion (`components/sections/faq.tsx`):**
+   - Universal animated accordion component exporting `UNIFIED_FAQS` (9 comprehensive questions on 30-day passes, pincode coverage, Razorpay payment methods, scan frequencies, coupons, GST invoices, scan quotas, multi-brand tracking, and OOS notifications).
+   - Reused across both Landing Page (`/`) and Pricing Page (`/pricing`) to guarantee 100% visual and content consistency.
 
 ### Page 2: How It Works (`/how-it-works`)
 - **Sticky Scroll Storytelling:** 3-step vertical timeline on the left (`1. Configure Brands & Pincodes` -> `2. Automated Dark-Store Scraping` -> `3. Real-Time Intelligence & Alerts`) with a sticky interactive visual stage on the right that morphs as the user scrolls.
 
 ### Page 3: Pricing (`/pricing`)
+- **Landing Page Design Inheritance:**
+  - Must strictly mirror the Landing Page aesthetics: deep obsidian (`#09090B`) in dark mode, crisp `#F8FAFC` in light mode, ambient blur glow accents, pill badges (`rounded-full`), and `btn-primary` pill buttons.
 - **30-Day Pass Model (No complex wallet clutter):**
-  - Clean 3-tier cards: **Starter**, **Pro** (Highlighted with animated glowing border), and **Enterprise**.
-  - Duration toggle (`30-Day Pass` vs `Annual Pass`) with smooth number flip animation on price change.
-  - Direct checkout CTA triggering the one-time renewal flow.
+  - Clean 3-tier cards: **Starter**, **Pro** (Highlighted with animated emerald border and popular pill), and **Enterprise**.
+  - `JetBrains Mono` / `font-mono` tabular numbers for prices (`₹4,999`, `₹14,999`, `₹49,999`).
+  - Direct checkout CTA triggering the Razorpay Standard flow with in-app coupon engine.
+  - Reuses the canonical `<FAQSection />` component with shared `UNIFIED_FAQS` data.
 
 ### Page 4: Contact & Demo (`/contact`)
 - Split layout: Left side shows direct enterprise support metrics & quick contact cards; Right side embeds a clean scheduling/inquiry card.

@@ -61,8 +61,19 @@ This document defines the definitive frontend architecture, styling standards, c
 6. **`ReviewsMarquee` (`components/sections/reviews-marquee.tsx`):**
    - Verified FMCG category managers reviews in dual-row infinite marquee.
    - Curated brand partner strip (`Paper Boat`, `Epigamia`, `Sleepy Owl`, `Chaayos`, `Blue Tokai`, `Slurrp Farm`, `The Whole Truth`, `Yoga Bar`) with category tags and color accents.
-7. **`Footer` (`components/ui/footer.tsx`):**
+7. **`FAQSection` (`components/sections/faq.tsx`):**
+   - Canonical animated accordion component exporting `UNIFIED_FAQS`.
+   - Used identically across both Landing (`/`) and Pricing (`/pricing`) pages to eliminate disparate Q&A versions.
+8. **`Footer` (`components/ui/footer.tsx`):**
    - Aesthetic minimal footer with platform coverage badges, navigation links, and subtle top accent divider.
+
+### 3.2 Pricing Page (`app/pricing/page.tsx`) & Subpage Inheritance
+1. **Landing Page Design Supremacy:**
+   - All subpages (especially `/pricing`) must directly inherit the Landing Page's visual elegance: deep obsidian (`#09090B`) in dark mode, crisp `#F8FAFC` in light mode, ambient blur glow accents, pill badges (`rounded-full`), and `btn-primary` pill actions.
+2. **Unified FAQ / Q&A Accordion Standard:**
+   - Static disconnected card grids for FAQs are banned. All pricing FAQs must import and render `<FAQSection />` from `components/sections/faq.tsx` using the shared `UNIFIED_FAQS` list.
+3. **Pass-Based Billing Representation:**
+   - 3-tier cards (Starter, Pro, Enterprise) with `font-mono` numbers for pricing (`₹4,999`, `₹14,999`, `₹49,999`) and pass durations (30-Day vs Annual).
 
 ---
 
@@ -77,6 +88,9 @@ This document defines the definitive frontend architecture, styling standards, c
    - Wrap animated elements in `AnimatePresence mode="wait"` with short duration (0.2s - 0.25s) for clean transitions.
 3. **Hardware Acceleration:**
    - Use `transform` and `opacity` for Framer Motion transitions. Avoid animating `height` or `width` dynamically where possible.
+4. **Zero Double-Trigger / Collision Rule:**
+   - Never apply Tailwind `transition-all` to elements managed by Framer Motion's `animate` or `whileInView`. CSS transitions will intercept the inline transform/opacity changes, causing double animations or stutters. Use targeted CSS properties (e.g. `transition-[border-color,box-shadow]` or `transition-colors`).
+   - Orchestrate list entrances (pricing cards, FAQ items) from a parent container with `staggerChildren` and `viewport={{ once: true, margin: "-40px" }}` so items trigger exactly once and never re-trigger on scroll or state changes.
 
 ---
 

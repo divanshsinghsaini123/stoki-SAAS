@@ -170,17 +170,38 @@ The visual direction centers on **High-Contrast Monochrome with Electric Emerald
 
 - Dual-theme testimonials with verified brand badges, 5-star ratings, author initials avatar, and high-contrast quote text (`text-zinc-700 dark:text-zinc-200`).
 
+### Unified FAQ / Q&A Accordion Standard
+
+- **Strict Component Reusability:** All Q&A and FAQ sections across all routes (Landing Page `/`, Pricing Page `/pricing`, etc.) MUST use the unified, animated accordion system defined in `components/sections/faq.tsx`. Static disconnected card grids for FAQs are banned.
+- **Accordion Micro-Interactions:**
+  - Plus/Minus icon rotation inside a circular border badge (`w-6 h-6 rounded-full border border-[var(--border)] bg-[var(--surface-solid)]`).
+  - Active state border glow: `border-[var(--accent)]/30 bg-[var(--accent-subtle)]`.
+  - Spring-based smooth content expansion with Framer Motion (`height: "auto"`).
+  - Consistent header hierarchy: uppercase tracking-widest eyebrow badge (`text-xs font-semibold uppercase tracking-widest text-[var(--accent)]`), H2 headline (`text-3xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]`), and subtle support copy with link.
+
+### Landing Page Design Inheritance
+
+- Secondary routes (especially `/pricing`, `/login`, `/signup`) must directly mirror the Landing Page's design aesthetics:
+  - Deep obsidian backgrounds (`#09090B`) with subtle 1px borders (`border-slate-200 dark:border-zinc-800`).
+  - Monospace JetBrains Mono for all numeric pricing, quotas, and pass duration.
+  - Zero cluttered rainbow gradients or heavy CPU-bound blur loops.
+  - Generous whitespace, cohesive section rhythm, and unified light/dark mode contrast.
+
 ## Do's and Don'ts
 
 ### Do's
 
 - **Do** preserve crisp light-mode contrast: always pair light backgrounds with dark text (`text-zinc-900`, `text-zinc-700`, `text-zinc-600`).
+- **Do** reuse the canonical `FAQSection` accordion across both Landing and Pricing pages.
 - **Do** use `JetBrains Mono` for all numbers, pincodes, latencies, and prices to ensure tabular alignment.
 - **Do** use calm, purposeful status dots (solid or slow 3.5s breathing) rather than frantic pulsing.
+- **Do** orchestrate list entrance animations via parent `staggerChildren` and `viewport={{ once: true, margin: "-40px" }}` to guarantee clean, single-execution transitions.
 - **Do** use realistic FMCG brands and products (e.g. Red Bull Energy 250ml, Coca-Cola Zero 300ml, Lay's 52g) rather than generic placeholders.
 
 ### Don'ts
 
+- **Don't** create separate or divergent FAQ card grids on subpages.
+- **Don't** attach Tailwind `transition-all` to elements animated by Framer Motion's `animate` or `whileInView` (use targeted `transition-[border-color,box-shadow]` instead to avoid double-animation stutters).
 - **Don't** use indigo/purple AI themes (`#6366F1`) as primary accents.
 - **Don't** use robotic AI jargon like *"Live Dark-Store Mesh Telemetry Pinging every 60s"*. Use grounded B2B terms like *"Dark-Store Network Coverage • 60s Scan Cycles"*.
 - **Don't** use rapid CSS `@keyframes animate-ping` across multiple grid elements.
