@@ -14,6 +14,7 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
     /* Night Mode (Obsidian Glass) — DEFAULT */
     --background: #09090B;
     --background-secondary: #121215;
@@ -58,6 +59,7 @@
   }
 
   .light {
+    color-scheme: light;
     /* Daylight Mode (Crisp Editorial Paper on Slate-50) */
     --background: #F8FAFC;
     --background-secondary: #F1F5F9;
@@ -110,6 +112,15 @@
   samp,
   pre {
     font-family: var(--font-geist-mono), "Geist Mono", monospace;
+  }
+
+  /* Google Identity Services Dark Mode iframe fix */
+  .dark iframe[src*="accounts.google.com"],
+  .dark [id^="g_id_"] iframe,
+  .dark [id^="g_id_"] {
+    color-scheme: dark !important;
+    background-color: transparent !important;
+    border-radius: 9999px !important;
   }
 
   /* Scrollbar */
