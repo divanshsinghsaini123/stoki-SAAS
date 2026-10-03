@@ -3,7 +3,6 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { GoogleOAuthProvider } from '@react-oauth/google';
 
 
 export const metadata: Metadata = {
@@ -35,17 +34,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
-
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem={false}
-            disableTransitionOnChange={false}
-          >
-            {children}
-          </ThemeProvider>
-        </GoogleOAuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange={false}
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
 
