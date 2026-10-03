@@ -1,10 +1,24 @@
 import logging
 import os
+import sys
+from pathlib import Path
 from contextlib import asynccontextmanager
+
+# Add project root to sys.path so 'packages' can be imported
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Add inventory src to sys.path
+INVENTORY_SRC = Path(__file__).resolve().parent
+if str(INVENTORY_SRC) not in sys.path:
+    sys.path.insert(0, str(INVENTORY_SRC))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 try:
+    from .config import PORT
     from .api import (
         live_stock_router,
         availability_router,
@@ -16,6 +30,7 @@ try:
     )
     from .dispatcher import start_async_scheduler, stop_async_scheduler
 except ImportError:
+    from config import PORT
     from api import (
         live_stock_router,
         availability_router,
@@ -92,5 +107,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    from .config import PORT
     uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)

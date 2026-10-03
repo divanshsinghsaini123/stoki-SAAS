@@ -42,6 +42,12 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        {process.env.NODE_ENV === "development" && (
+          <script
+            src="http://localhost:8400/live.js?token=a4dd85c6-5d2c-490d-99ff-f822cbea016a"
+            async
+          />
+        )}
       </body>
     </html>
 

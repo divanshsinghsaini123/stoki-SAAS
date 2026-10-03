@@ -32,6 +32,21 @@ class Tenant(Base):
     company_name = Column(String(150), nullable=False)
     email = Column(String(150), nullable=False, unique=True, index=True)
     phone_number = Column(String(50), nullable=True)
+
+    # --- New Organization & Onboarding Fields ---
+    logo_url = Column(String(500), nullable=True)              # Workspace/Company avatar or logo (skippable)
+    website_url = Column(String(255), nullable=True)           # Company website (e.g. https://brand.com)
+    industry_category = Column(String(100), nullable=True)     # e.g., 'FMCG / F&B', 'Beauty & Personal Care', 'Home & Essentials', 'Health & Wellness', 'Electronics'
+    organization_size = Column(String(50), nullable=True)      # e.g., '1-10', '11-50', '51-200', '200+'
+    team_size = Column(String(50), nullable=True)              # e.g., 'Just me', '2-5', '6-15', '15+'
+    brand_count_estimate = Column(String(30), nullable=True)   # How many brands they manage: '1', '2-5', '6-15', '15+'
+    target_platforms = Column(
+        JSONB,
+        nullable=False,
+        server_default=text("'[\"blinkit\", \"zepto\", \"instamart\"]'::jsonb"),
+    )
+    is_onboarded = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+
     settings = Column(
         JSONB,
         nullable=False,

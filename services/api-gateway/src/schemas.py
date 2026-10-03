@@ -64,12 +64,20 @@ class TenantSummary(BaseModel):
     company_name: str
     plan_name: str = "Starter"
     status: str = "active"
+    is_onboarded: bool = False
+    logo_url: str | None = None
+    website_url: str | None = None
+    industry_category: str | None = None
+    organization_size: str | None = None
+    team_size: str | None = None
+    brand_count_estimate: str | None = None
+    target_platforms: list[str] = ["blinkit", "zepto", "instamart"]
 
 
 class AuthTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    expires_in_hours: int = 24
+    expires_in_hours: int = 168
     user: UserSummary
     tenant: TenantSummary
 
@@ -87,6 +95,61 @@ class UserProfileResponse(BaseModel):
     scans_used_today: int
     extra_scan_credits: int
     current_period_end: datetime | None = None
+    # Tenant profile & onboarding fields
+    is_onboarded: bool = False
+    logo_url: str | None = None
+    website_url: str | None = None
+    industry_category: str | None = None
+    organization_size: str | None = None
+    team_size: str | None = None
+    brand_count_estimate: str | None = None
+    target_platforms: list[str] = ["blinkit", "zepto", "instamart"]
+
+
+# --- Tenant Onboarding & Management Schemas ---
+
+class TenantOnboardingRequest(BaseModel):
+    company_name: str | None = Field(default=None, description="Updated workspace/brand company name")
+    logo_url: str | None = Field(default=None, description="Logo or avatar URL")
+    website_url: str | None = Field(default=None, description="Company website URL")
+    industry_category: str | None = Field(default=None, description="e.g. FMCG / F&B, Beauty & Personal Care")
+    organization_size: str | None = Field(default=None, description="Employee headcount tier")
+    team_size: str | None = Field(default=None, description="Analytics/eCommerce team size")
+    brand_count_estimate: str | None = Field(default=None, description="Estimated number of managed brands")
+    target_platforms: list[str] | None = Field(default=None, description="Target Q-Commerce platforms list")
+    mark_completed: bool = Field(default=True, description="Sets is_onboarded = True when complete")
+
+
+class TenantResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    company_name: str
+    email: str
+    phone_number: str | None = None
+    logo_url: str | None = None
+    website_url: str | None = None
+    industry_category: str | None = None
+    organization_size: str | None = None
+    team_size: str | None = None
+    brand_count_estimate: str | None = None
+    target_platforms: list[str] = ["blinkit", "zepto", "instamart"]
+    is_onboarded: bool = False
+    settings: dict[str, Any] = {}
+    created_at: datetime | None = None
+
+
+class TenantSettingsUpdateRequest(BaseModel):
+    company_name: str | None = None
+    phone_number: str | None = None
+    logo_url: str | None = None
+    website_url: str | None = None
+    industry_category: str | None = None
+    organization_size: str | None = None
+    team_size: str | None = None
+    brand_count_estimate: str | None = None
+    target_platforms: list[str] | None = None
+    settings: dict[str, Any] | None = None
 
 
 # --- Payment & Coupon Schemas ---

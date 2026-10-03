@@ -42,9 +42,20 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("stoki_auth_token");
+      if (token) {
+        // User already has an active session — take them straight to dashboard
+        window.location.replace(redirectTarget || "/dashboard");
+        return;
+      }
+    }
+    setCheckingAuth(false);
+  }, [redirectTarget]);
 
   // Form Fields
   const [fullName, setFullName] = useState("");
@@ -70,16 +81,23 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
     }
   }, [otpResendCountdown]);
 
-  const handleAuthSuccess = (token: string, user: any) => {
+  const handleAuthSuccess = (token: string, user: any, tenant?: any) => {
     if (typeof window !== "undefined") {
       localStorage.setItem("stoki_auth_token", token);
       localStorage.setItem("stoki_user_email", user?.email || email);
       localStorage.setItem("stoki_user_name", user?.full_name || fullName);
+      if (tenant) {
+        localStorage.setItem("stoki_tenant_id", tenant.id || "");
+        localStorage.setItem("stoki_tenant_name", tenant.company_name || "");
+        localStorage.setItem("stoki_is_onboarded", String(tenant.is_onboarded ?? false));
+      }
+      document.cookie = `stoki_session=${token}; path=/; max-age=604800; SameSite=Lax`;
     }
     setSuccessMsg("Verified! Redirecting...");
     setTimeout(() => {
-      router.push(redirectTarget);
-    }, 800);
+      // Use replace so /login does not stay in the browser back-history stack
+      window.location.replace(redirectTarget || "/dashboard");
+    }, 250);
   };
 
   // Google OAuth Success Handler
@@ -96,6 +114,7 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
       const res = await fetch(API_ENDPOINTS.googleAuth, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ id_token: credentialResponse.credential }),
       });
 
@@ -104,7 +123,7 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
         throw new Error(data.detail || "Google authentication failed.");
       }
 
-      handleAuthSuccess(data.access_token, data.user);
+      handleAuthSuccess(data.access_token, data.user, data.tenant);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to sign in with Google.");
     } finally {
@@ -168,6 +187,7 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
       const res = await fetch(API_ENDPOINTS.signup, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           full_name: fullName.trim(),
           email: email.trim().toLowerCase(),
@@ -182,7 +202,7 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
         throw new Error(data.detail || "Sign up failed.");
       }
 
-      handleAuthSuccess(data.access_token, data.user);
+      handleAuthSuccess(data.access_token, data.user, data.tenant);
     } catch (err: any) {
       setErrorMsg(err.message || "Invalid verification code.");
     } finally {
@@ -205,6 +225,7 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
       const res = await fetch(API_ENDPOINTS.login, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password: password,
@@ -216,7 +237,7 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
         throw new Error(data.detail || "Invalid email or password.");
       }
 
-      handleAuthSuccess(data.access_token, data.user);
+      handleAuthSuccess(data.access_token, data.user, data.tenant);
     } catch (err: any) {
       setErrorMsg(err.message || "Invalid credentials.");
     } finally {
@@ -296,6 +317,14 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#FAFAFA] dark:bg-[#09090B] text-zinc-400 text-xs font-mono">
+        Verifying session...
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Lightweight, zero-CPU background grid */}
@@ -369,8 +398,8 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
               className={cn(
                 "flex-1 py-1.5 text-xs font-semibold rounded-md transition-all",
                 view === "signin"
-                  ? "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white border border-slate-200 dark:border-zinc-800 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 border border-transparent"
               )}
             >
               Sign In
@@ -385,8 +414,8 @@ export function AuthCard({ initialMode = "signin" }: AuthCardProps) {
               className={cn(
                 "flex-1 py-1.5 text-xs font-semibold rounded-md transition-all",
                 view === "signup"
-                  ? "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white border border-slate-200 dark:border-zinc-800 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 border border-transparent"
               )}
             >
               Create Account

@@ -15,10 +15,27 @@ export const API_ENDPOINTS = {
   me: `${API_BASE_URL}/api/v1/auth/me`,
   logout: `${API_BASE_URL}/api/v1/auth/logout`,
 
+  // Tenants & Organization
+  tenantsMe: `${API_BASE_URL}/api/v1/tenants/me`,
+  tenantsOnboarding: `${API_BASE_URL}/api/v1/tenants/onboarding`,
+
   // Payments & Checkout
   applyCoupon: `${API_BASE_URL}/api/v1/payments/apply-coupon`,
   createOrder: `${API_BASE_URL}/api/v1/payments/create-order`,
   verifyPayment: `${API_BASE_URL}/api/v1/payments/verify`,
   webhook: `${API_BASE_URL}/api/v1/webhooks/razorpay`,
 } as const;
+
+export function getAuthHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("stoki_auth_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
 
