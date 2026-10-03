@@ -18,7 +18,7 @@ else:
 # JWT Authentication Config
 JWT_SECRET = os.getenv("JWT_SECRET", "stoki_super_secure_jwt_secret_key_2026")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
+JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "168"))  # 7 days (168 hours)
 
 # Database URL for Auth (tenants, tenant_users)
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://stoki:stoki_password@localhost:5434/stoki_db")
@@ -40,7 +40,7 @@ SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USER or "noreply@stoki.app")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Stoki Intelligence")
 
 # Runtime Environment
-ENVIRONMENT = os.getenv("ENVIRONMENT", os.getenv("  ", "development")).lower()
+ENVIRONMENT = os.getenv("ENVIRONMENT", os.getenv("NODE_ENV", "development")).lower()
 IS_PROD = ENVIRONMENT in ("production", "prod")
 
 

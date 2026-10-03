@@ -32,7 +32,7 @@ try:
         create_access_token,
         get_current_user,
     )
-    from ..config import GOOGLE_CLIENT_ID
+    from ..config import GOOGLE_CLIENT_ID, IS_PROD, JWT_EXPIRATION_HOURS
     from ..mailer import send_otp_email
     from ..schemas import (
         SignUpRequest,
@@ -54,7 +54,7 @@ except ImportError:
         create_access_token,
         get_current_user,
     )
-    from config import GOOGLE_CLIENT_ID
+    from config import GOOGLE_CLIENT_ID, IS_PROD, JWT_EXPIRATION_HOURS
     from mailer import send_otp_email
     from schemas import (
         SignUpRequest,
@@ -80,14 +80,14 @@ def generate_6digit_otp() -> str:
 
 
 def set_auth_cookie(response: Response, token: str):
-    """Sets an httpOnly, SameSite=Lax session cookie."""
+    """Sets an httpOnly, SameSite=Lax session cookie dynamically based on environment."""
     response.set_cookie(
         key="stoki_session",
         value=token,
         httponly=True,
         samesite="lax",
-        max_age=86400 * 7,  # 7 days
-        secure=False,  # Set to True in HTTPS production
+        max_age=JWT_EXPIRATION_HOURS * 3600,  # Synced exactly with JWT token lifetime
+        secure=IS_PROD,  # True in HTTPS production, False in local development
         path="/",
     )
 
@@ -140,14 +140,20 @@ def send_verification_otp(
         logger.error(f"Error persisting OTP: {e}")
         db.rollback()
 
-    # Dispatch email asynchronously/synchronously
+    # Dispatch email
     purpose_label = "Sign Up Verification" if payload.purpose == "signup" else "Verification"
-    send_otp_email(
+    email_sent = send_otp_email(
         to_email=clean_email,
         otp_code=code,
         purpose=purpose_label,
         full_name=payload.full_name,
     )
+
+    if not email_sent and IS_PROD:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to dispatch verification email. Please check your email address or try again later.",
+        )
 
     return MessageResponse(
         success=True,
@@ -180,8 +186,13 @@ def signup_user(
             detail="An account with this email address already exists. Please sign in.",
         )
 
-    # 2. Optional OTP Verification if OTP is submitted
-    if payload.otp:
+    # 2. OTP Verification: Always pass in development, strictly verify in production
+    if IS_PROD:
+        if not payload.otp:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code is required in production.",
+            )
         otp_record = (
             db.query(AuthOTP)
             .filter(
@@ -194,12 +205,33 @@ def signup_user(
             .first()
         )
         now_utc = datetime.now(timezone.utc)
-        if not otp_record or (otp_record.expires_at and now_utc > otp_record.expires_at.replace(tzinfo=timezone.utc if otp_record.expires_at.tzinfo is None else None)):
+        if not otp_record or (
+            otp_record.expires_at
+            and now_utc > otp_record.expires_at.replace(
+                tzinfo=timezone.utc if otp_record.expires_at.tzinfo is None else None
+            )
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired verification code.",
             )
         otp_record.is_used = True
+    else:
+        # In development: always return True / accept any OTP without blocking
+        logger.info(f"[DEV] Development environment active: OTP check bypassed for {clean_email}")
+        if payload.otp:
+            otp_record = (
+                db.query(AuthOTP)
+                .filter(
+                    AuthOTP.email == clean_email,
+                    AuthOTP.purpose == "signup",
+                    AuthOTP.is_used == False,
+                )
+                .order_by(AuthOTP.created_at.desc())
+                .first()
+            )
+            if otp_record:
+                otp_record.is_used = True
 
     # 3. Create Tenant in a single transaction (Auto-provisioned Workspace)
     tenant = db.query(Tenant).filter(Tenant.email == clean_email).first()
@@ -241,7 +273,7 @@ def signup_user(
     return AuthTokenResponse(
         access_token=token,
         token_type="bearer",
-        expires_in_hours=24,
+        expires_in_hours=JWT_EXPIRATION_HOURS,
         user=UserSummary(
             id=str(new_user.id),
             email=new_user.email,
@@ -328,7 +360,7 @@ def login_user(
     return AuthTokenResponse(
         access_token=token,
         token_type="bearer",
-        expires_in_hours=24,
+        expires_in_hours=JWT_EXPIRATION_HOURS,
         user=UserSummary(
             id=str(user.id),
             email=user.email,
@@ -447,7 +479,7 @@ def google_auth(
     return AuthTokenResponse(
         access_token=token,
         token_type="bearer",
-        expires_in_hours=24,
+        expires_in_hours=JWT_EXPIRATION_HOURS,
         user=UserSummary(
             id=str(user.id),
             email=user.email,
@@ -505,12 +537,18 @@ def send_forgot_password_otp(
         logger.error(f"Error persisting reset OTP: {e}")
         db.rollback()
 
-    send_otp_email(
+    email_sent = send_otp_email(
         to_email=clean_email,
         otp_code=code,
         purpose="Password Reset Code",
         full_name=user.full_name,
     )
+
+    if not email_sent and IS_PROD:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to dispatch password reset email. Please try again later.",
+        )
 
     return MessageResponse(
         success=True,
@@ -621,5 +659,11 @@ def get_current_profile(
 @router.post("/logout", response_model=MessageResponse)
 def logout_user(response: Response):
     """Clears the stoki_session authentication cookie."""
-    response.delete_cookie(key="stoki_session", path="/")
+    response.delete_cookie(
+        key="stoki_session",
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=IS_PROD,
+    )
     return MessageResponse(success=True, message="Successfully logged out.")
