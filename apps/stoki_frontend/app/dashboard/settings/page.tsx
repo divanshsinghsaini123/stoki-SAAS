@@ -25,9 +25,9 @@ import {
   Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_ENDPOINTS, getAuthHeaders } from "@/lib/api";
+import { API_ENDPOINTS, getAuthHeaders, PlatformItem } from "@/lib/api";
 import { useTenant } from "../layout";
-import { BlinkitIcon, ZeptoIcon, InstamartIcon } from "@/components/ui/platform-logos";
+import { PlatformLogo, BlinkitIcon, ZeptoIcon, InstamartIcon } from "@/components/ui/platform-logos";
 
 const INDUSTRY_OPTIONS = [
   "FMCG / F&B",
@@ -59,30 +59,56 @@ const TEAM_SIZES = [
   { value: "15+", label: "15+ members", sub: "Enterprise Fleet" },
 ];
 
-const PLATFORMS = [
+const DEFAULT_PLATFORMS: PlatformItem[] = [
   {
     id: "blinkit",
-    name: "Blinkit",
+    display_name: "Blinkit",
+    slug: "blinkit",
     tagline: "Instant 10-Min Delivery",
-    color: "#F8CB46",
-    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    icon: BlinkitIcon,
+    brand_color: "#F8CB46",
+    badge_bg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    is_active: true,
+    sort_order: 1,
   },
   {
     id: "zepto",
-    name: "Zepto",
+    display_name: "Zepto",
+    slug: "zepto",
     tagline: "Ultra-Fast Dark Stores",
-    color: "#8B5CF6",
-    badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-    icon: ZeptoIcon,
+    brand_color: "#8B5CF6",
+    badge_bg: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    is_active: true,
+    sort_order: 2,
   },
   {
     id: "instamart",
-    name: "Swiggy Instamart",
-    tagline: "Hyperlocal Fleet",
-    color: "#FC8019",
-    badgeClass: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-    icon: InstamartIcon,
+    display_name: "Swiggy Instamart",
+    slug: "instamart",
+    tagline: "Hyperlocal Grocery Fleet",
+    brand_color: "#FC8019",
+    badge_bg: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+    is_active: true,
+    sort_order: 3,
+  },
+  {
+    id: "bigbasket",
+    display_name: "BigBasket (BB Now)",
+    slug: "bigbasket",
+    tagline: "Tata Hyperlocal Network",
+    brand_color: "#84C225",
+    badge_bg: "bg-lime-500/10 text-lime-600 dark:text-lime-400 border-lime-500/20",
+    is_active: true,
+    sort_order: 4,
+  },
+  {
+    id: "flipkart_minutes",
+    display_name: "Flipkart Minutes",
+    slug: "flipkart_minutes",
+    tagline: "10-Minute Rapid Delivery",
+    brand_color: "#2874F0",
+    badge_bg: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    is_active: true,
+    sort_order: 5,
   },
 ];
 
@@ -119,7 +145,28 @@ export default function TenantSettingsPage() {
   const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [slackWebhook, setSlackWebhook] = useState("");
 
+  // Dynamic Platforms from API Master Table
+  const [availablePlatforms, setAvailablePlatforms] = useState<PlatformItem[]>(DEFAULT_PLATFORMS);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch dynamic platforms from DB master table
+  useEffect(() => {
+    async function loadPlatforms() {
+      try {
+        const res = await fetch(API_ENDPOINTS.platforms);
+        if (res.ok) {
+          const data: PlatformItem[] = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setAvailablePlatforms(data);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load platforms from master table, using fallback:", err);
+      }
+    }
+    loadPlatforms();
+  }, []);
 
   // Populate from tenant context
   useEffect(() => {
@@ -546,9 +593,8 @@ export default function TenantSettingsPage() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
               Active Q-Commerce Radar Platforms
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {PLATFORMS.map((platform) => {
-                const Icon = platform.icon;
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {availablePlatforms.map((platform) => {
                 const isSelected = selectedPlatforms.includes(platform.id);
                 return (
                   <div
@@ -561,13 +607,13 @@ export default function TenantSettingsPage() {
                         : "bg-zinc-50/40 dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 opacity-60 hover:opacity-100"
                     )}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <Icon className="w-7 h-7" />
-                      <div>
-                        <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                          {platform.name}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <PlatformLogo platform={platform.id} className="w-7 h-7 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                          {platform.display_name}
                         </div>
-                        <div className="text-[10px] text-zinc-400 font-mono">
+                        <div className="text-[10px] text-zinc-400 font-mono truncate">
                           {isSelected ? "Active Radar" : "Inactive"}
                         </div>
                       </div>

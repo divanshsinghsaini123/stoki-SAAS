@@ -18,6 +18,30 @@ from sqlalchemy.sql import func
 from .connection import Base
 
 
+class Platform(Base):
+    """Master registry of supported Q-Commerce platforms (Blinkit, Zepto, Instamart, BigBasket, etc.)."""
+
+    __tablename__ = "platforms"
+
+    id = Column(String(50), primary_key=True)  # 'blinkit', 'zepto', 'instamart', 'bigbasket', 'flipkart_minutes'
+    display_name = Column(String(100), nullable=False)
+    slug = Column(String(50), unique=True, nullable=False, index=True)
+    tagline = Column(String(150), nullable=True)
+    logo_url = Column(String(500), nullable=True)
+    brand_color = Column(String(30), nullable=True)
+    badge_bg = Column(String(100), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"), index=True)
+    sort_order = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Platform(id='{self.id}', display_name='{self.display_name}', is_active={self.is_active})>"
+
+
 class Tenant(Base):
     """Organization / Company profile managing multiple brands, subscriptions, and team members."""
 

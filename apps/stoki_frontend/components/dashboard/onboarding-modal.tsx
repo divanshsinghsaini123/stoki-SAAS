@@ -18,8 +18,8 @@ import {
   Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_ENDPOINTS, getAuthHeaders } from "@/lib/api";
-import { BlinkitIcon, ZeptoIcon, InstamartIcon } from "@/components/ui/platform-logos";
+import { API_ENDPOINTS, getAuthHeaders, PlatformItem } from "@/lib/api";
+import { PlatformLogo, BlinkitIcon, ZeptoIcon, InstamartIcon } from "@/components/ui/platform-logos";
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -74,30 +74,56 @@ const TEAM_SIZES = [
   { value: "15+", label: "15+ members", sub: "Enterprise Fleet" },
 ];
 
-const PLATFORMS = [
+const DEFAULT_PLATFORMS: PlatformItem[] = [
   {
     id: "blinkit",
-    name: "Blinkit",
+    display_name: "Blinkit",
+    slug: "blinkit",
     tagline: "Instant 10-Min Delivery",
-    color: "#F8CB46",
-    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    icon: BlinkitIcon,
+    brand_color: "#F8CB46",
+    badge_bg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    is_active: true,
+    sort_order: 1,
   },
   {
     id: "zepto",
-    name: "Zepto",
+    display_name: "Zepto",
+    slug: "zepto",
     tagline: "Ultra-Fast Dark Stores",
-    color: "#8B5CF6",
-    badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-    icon: ZeptoIcon,
+    brand_color: "#8B5CF6",
+    badge_bg: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    is_active: true,
+    sort_order: 2,
   },
   {
     id: "instamart",
-    name: "Swiggy Instamart",
+    display_name: "Swiggy Instamart",
+    slug: "instamart",
     tagline: "Hyperlocal Grocery Fleet",
-    color: "#FC8019",
-    badgeClass: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-    icon: InstamartIcon,
+    brand_color: "#FC8019",
+    badge_bg: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+    is_active: true,
+    sort_order: 3,
+  },
+  {
+    id: "bigbasket",
+    display_name: "BigBasket (BB Now)",
+    slug: "bigbasket",
+    tagline: "Tata Hyperlocal Network",
+    brand_color: "#84C225",
+    badge_bg: "bg-lime-500/10 text-lime-600 dark:text-lime-400 border-lime-500/20",
+    is_active: true,
+    sort_order: 4,
+  },
+  {
+    id: "flipkart_minutes",
+    display_name: "Flipkart Minutes",
+    slug: "flipkart_minutes",
+    tagline: "10-Minute Rapid Delivery",
+    brand_color: "#2874F0",
+    badge_bg: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    is_active: true,
+    sort_order: 5,
   },
 ];
 
@@ -110,6 +136,9 @@ export function OnboardingModal({
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Dynamic Platforms from API
+  const [availablePlatforms, setAvailablePlatforms] = useState<PlatformItem[]>(DEFAULT_PLATFORMS);
 
   // Form State
   const [companyName, setCompanyName] = useState("");
@@ -129,6 +158,24 @@ export function OnboardingModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isInitialized = useRef(false);
+
+  // Fetch dynamic platforms from DB master table
+  useEffect(() => {
+    async function loadPlatforms() {
+      try {
+        const res = await fetch(API_ENDPOINTS.platforms);
+        if (res.ok) {
+          const data: PlatformItem[] = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setAvailablePlatforms(data);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load platforms from master table, using fallback:", err);
+      }
+    }
+    loadPlatforms();
+  }, []);
 
   // Initialize form strictly ONCE on mount
   useEffect(() => {
@@ -309,8 +356,8 @@ export function OnboardingModal({
                       currentStep === stepNum
                         ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                         : currentStep > stepNum
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                        : "text-zinc-400 dark:text-zinc-600"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "text-zinc-400 dark:text-zinc-600"
                     )}
                   >
                     {currentStep > stepNum ? (
@@ -322,8 +369,8 @@ export function OnboardingModal({
                       {stepNum === 1
                         ? "Identity"
                         : stepNum === 2
-                        ? "Scale"
-                        : "Alerts"}
+                          ? "Scale"
+                          : "Alerts"}
                     </span>
                   </button>
                 ))}
@@ -595,9 +642,8 @@ export function OnboardingModal({
                   <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
                     Active Platforms <span className="text-rose-500">*</span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {PLATFORMS.map((platform) => {
-                      const Icon = platform.icon;
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {availablePlatforms.map((platform) => {
                       const isSelected = selectedPlatforms.includes(platform.id);
                       return (
                         <div
@@ -610,14 +656,14 @@ export function OnboardingModal({
                               : "bg-zinc-50/60 dark:bg-zinc-950/60 border-zinc-200 dark:border-zinc-800/80 opacity-70 hover:opacity-100"
                           )}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <Icon className="w-6 h-6" />
-                            <div>
-                              <div className="font-bold text-xs text-zinc-900 dark:text-zinc-100">
-                                {platform.name}
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <PlatformLogo platform={platform.id} className="w-6 h-6 shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">
+                                {platform.display_name}
                               </div>
-                              <div className="text-[10px] text-zinc-400">
-                                {platform.tagline}
+                              <div className="text-[10px] text-zinc-400 truncate">
+                                {platform.tagline || "Dark-store radar"}
                               </div>
                             </div>
                           </div>

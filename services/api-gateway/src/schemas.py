@@ -189,3 +189,19 @@ class VerifyPaymentResponse(BaseModel):
     success: bool
     redirect_url: str = "/dashboard?payment=success"
 
+
+# --- Platform Master Schemas ---
+
+class PlatformResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    display_name: str
+    slug: str
+    tagline: str | None = None
+    logo_url: str | None = None
+    brand_color: str | None = None
+    badge_bg: str | None = None
+    is_active: bool = True
+    sort_order: int = 0
+

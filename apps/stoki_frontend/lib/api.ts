@@ -19,12 +19,27 @@ export const API_ENDPOINTS = {
   tenantsMe: `${API_BASE_URL}/api/v1/tenants/me`,
   tenantsOnboarding: `${API_BASE_URL}/api/v1/tenants/onboarding`,
 
+  // Platforms Master Registry
+  platforms: `${API_BASE_URL}/api/v1/platforms`,
+
   // Payments & Checkout
   applyCoupon: `${API_BASE_URL}/api/v1/payments/apply-coupon`,
   createOrder: `${API_BASE_URL}/api/v1/payments/create-order`,
   verifyPayment: `${API_BASE_URL}/api/v1/payments/verify`,
   webhook: `${API_BASE_URL}/api/v1/webhooks/razorpay`,
 } as const;
+
+export interface PlatformItem {
+  id: string;
+  display_name: string;
+  slug: string;
+  tagline?: string | null;
+  logo_url?: string | null;
+  brand_color?: string | null;
+  badge_bg?: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
 
 export function getAuthHeaders(): HeadersInit {
   const headers: Record<string, string> = {

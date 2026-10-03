@@ -21,12 +21,12 @@ try:
     from .config import PORT, INVENTORY_SERVICE_URL
     from .auth import get_current_user, get_optional_user
     from .proxy import forward_to_upstream, close_http_client
-    from .routes import auth_router, payment_router, tenant_router
+    from .routes import auth_router, payment_router, tenant_router, platform_router
 except ImportError:
     from config import PORT, INVENTORY_SERVICE_URL
     from auth import get_current_user, get_optional_user
     from proxy import forward_to_upstream, close_http_client
-    from routes import auth_router, payment_router, tenant_router
+    from routes import auth_router, payment_router, tenant_router, platform_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("stoki-api-gateway")
@@ -65,6 +65,9 @@ app.include_router(payment_router, prefix="/api/v1")
 
 # Mount Tenant & Workspace Management Routes
 app.include_router(tenant_router, prefix="/api/v1")
+
+# Mount Platforms Master Registry Routes
+app.include_router(platform_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["Health"])

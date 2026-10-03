@@ -85,6 +85,26 @@ export function BigBasketIcon({ className = "w-5 h-5", size }: LogoProps) {
   );
 }
 
+export function FlipkartMinutesIcon({ className = "w-5 h-5", size }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={size ? { width: size, height: size } : undefined}
+    >
+      <rect width="32" height="32" rx="8" fill="#2874F0" />
+      {/* Flipkart 'F' with speed thunderbolt accent */}
+      <path
+        d="M10 8H22V12H15V14.5H20.5V18.5H15V24H10V8Z"
+        fill="#FFE500"
+      />
+      <circle cx="21" cy="9.5" r="2.5" fill="#FFE500" />
+    </svg>
+  );
+}
+
 export function PlatformLogo({
   platform,
   className = "w-4 h-4",
@@ -97,7 +117,15 @@ export function PlatformLogo({
   const p = platform.toLowerCase();
   if (p.includes("blink")) return <BlinkitIcon className={className} size={size} />;
   if (p.includes("zept")) return <ZeptoIcon className={className} size={size} />;
-  if (p.includes("insta")) return <InstamartIcon className={className} size={size} />;
+  if (p.includes("insta") || p.includes("swiggy")) return <InstamartIcon className={className} size={size} />;
   if (p.includes("big") || p.includes("bb")) return <BigBasketIcon className={className} size={size} />;
-  return null;
+  if (p.includes("flipkart") || p.includes("minute")) return <FlipkartMinutesIcon className={className} size={size} />;
+  return (
+    <div
+      className={`rounded bg-zinc-800 text-zinc-300 font-bold uppercase flex items-center justify-center text-[10px] ${className}`}
+      style={size ? { width: size, height: size } : undefined}
+    >
+      {platform.slice(0, 2)}
+    </div>
+  );
 }
