@@ -11,6 +11,7 @@ try:
         SMTP_PASSWORD,
         SMTP_FROM_EMAIL,
         SMTP_FROM_NAME,
+        IS_PROD,
     )
 except ImportError:
     from config import (
@@ -20,6 +21,7 @@ except ImportError:
         SMTP_PASSWORD,
         SMTP_FROM_EMAIL,
         SMTP_FROM_NAME,
+        IS_PROD,
     )
 
 logger = logging.getLogger("stoki-mailer")
@@ -33,7 +35,8 @@ def send_otp_email(
 ) -> bool:
     """
     Dispatches a branded HTML OTP email via TLS SMTP.
-    Falls back gracefully to logging if SMTP is unconfigured in development.
+    In Production: Fails securely and never leaks OTPs to server logs.
+    In Development: Falls back to console log if SMTP is unconfigured.
     """
     subject = f"Your Stoki Security Code: {otp_code}"
     greeting_name = full_name.split()[0] if full_name else "there"
@@ -76,11 +79,18 @@ def send_otp_email(
 
     # Check if SMTP user/password is provided
     if not SMTP_USER or not SMTP_PASSWORD:
-        logger.info(
-            f"⚡ [DEV MODE OTP DISPATCH] No SMTP credentials provided. "
-            f"Destination: {to_email} | Purpose: {purpose} | OTP: {otp_code}"
-        )
-        return True
+        if IS_PROD:
+            logger.error(
+                f"[PROD ERROR] SMTP credentials missing in production. "
+                f"Cannot dispatch verification code to {to_email}."
+            )
+            return False
+        else:
+            logger.info(
+                f"⚡ [DEV MODE OTP DISPATCH] No SMTP credentials provided. "
+                f"Destination: {to_email} | Purpose: {purpose} | OTP: {otp_code}"
+            )
+            return True
 
     try:
         msg = MIMEMultipart("alternative")
@@ -100,8 +110,13 @@ def send_otp_email(
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(SMTP_FROM_EMAIL, [to_email], msg.as_string())
 
-        logger.info(f"OTP successfully delivered to {to_email} via SMTP.")
+        logger.info(f"Verification email successfully delivered to {to_email} via SMTP.")
         return True
     except Exception as e:
-        logger.error(f"Failed to dispatch email via SMTP ({e}). Fallback logging OTP: {otp_code}")
-        return True  # Do not block the user during development/testing
+        if IS_PROD:
+            logger.error(f"[PROD ERROR] Failed to dispatch email via SMTP to {to_email}: {e}")
+            return False
+        else:
+            logger.warning(f"Failed to dispatch email via SMTP ({e}). Dev OTP: {otp_code}")
+            return True
+

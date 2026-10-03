@@ -39,4 +39,8 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USER or "noreply@stoki.app")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Stoki Intelligence")
 
+# Runtime Environment
+ENVIRONMENT = os.getenv("ENVIRONMENT", os.getenv("  ", "development")).lower()
+IS_PROD = ENVIRONMENT in ("production", "prod")
+
 
